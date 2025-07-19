@@ -30,6 +30,8 @@ jobs:
         run: |
           python getlatestupdate.py
           python getlatestupdate_en.py
+          python generate_readme.py updates
+          python generate_readme_en.py updates_en
 
       - name: Commit and Push
         run: |
