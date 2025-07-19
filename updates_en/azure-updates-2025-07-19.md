@@ -19,13 +19,15 @@
 Azure Firewall now supports ingestion-time transformation of logs within Azure Log Analytics.
 
 - Key changes or new features  
-This update enables selective logging and advanced filtering of firewall logs at ingestion time. Users can define transformation rules to filter, modify, or reduce the volume of logs sent to Log Analytics. This capability helps optimize log ingestion costs and storage by preventing unnecessary data from being ingested and stored.
+This update enables selective logging and advanced filtering of firewall logs at ingestion time. Users can define transformation rules to filter, modify, or enrich log data before it is stored in Log Analytics. This reduces the volume of ingested data, optimizing both ingestion and storage costs while maintaining relevant security insights.
 
 - Target audience affected  
-Developers, security engineers, and IT professionals who rely on Azure Firewall logs for monitoring, security analysis, and compliance. Organizations using Log Analytics for firewall log analysis will benefit from improved cost management and more efficient log data handling.
+Developers and IT professionals who use Azure Firewall and rely on Log Analytics for monitoring, security analysis, and compliance reporting will benefit from more flexible and cost-efficient logging capabilities.
 
 - Important notes if any  
-Implementing ingestion-time transformations requires careful planning to ensure critical logs are retained for security and compliance needs. This feature enhances cost efficiency but should be configured to avoid losing valuable diagnostic or security information. The feature is now generally available and can be leveraged immediately in supported Azure regions.
+Implementing ingestion-time transformations requires configuring appropriate transformation rules in Log Analytics. This feature helps balance detailed logging needs with cost management, especially in environments with high log volume. Users should evaluate their logging requirements to maximize cost savings without losing critical security information.
+
+For more details, visit: https://azure.microsoft.com/updates?id=498568
 
 **Details**:
 
@@ -38,4 +40,4 @@ ingestion and storage itself
 ---
 
 
-*This report was automatically generated - 2025-07-19 06:44:16 UTC*
+*This report was automatically generated - 2025-07-19 06:44:54 UTC*
