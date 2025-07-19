@@ -661,7 +661,7 @@ def load_config() -> Dict[str, str]:
         "endpoint": os.getenv("AOAI_ENDPOINT"),
         "api_key": os.getenv("AOAI_KEY"),
         "deployment": os.getenv("DEPLOYMENT"),
-        "api_version": os.getenv("API_VER", "2024-02-15-preview"),
+        "api_version": os.getenv("API_VER", "2025-01-01-preview"),
         "check_hours": int(os.getenv("CHECK_HOURS", "24")),
     }
 
@@ -671,7 +671,7 @@ def load_config() -> Dict[str, str]:
 
     if missing_vars:
         logger.error(
-            f"必須環境変数が設定されていません: {', '.join(missing_vars.upper())}"
+            f"必須環境変数が設定されていません: {', '.join([var.upper() for var in missing_vars])}"
         )
         sys.exit(1)
 
