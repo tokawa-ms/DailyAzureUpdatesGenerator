@@ -2,8 +2,8 @@
 
 ## 概要
 
-このリポジトリには、Azure Updates の自動要約が [updates](./updates) ディレクトリに保存されています。
-自動要約は、毎日日本時間の正午に実行され、直近一日の Azure Updates の情報を収集し、要約を生成します。
+Azure Updates の自動要約が [updates](./updates) ディレクトリに保存されています。
+自動要約機能は、GitHub Actions によって毎日日本時間の正午に実行され、直近一日の Azure Updates の情報を収集したうえ、日本語の要約を生成します。
 
 ## 免責事項
 
