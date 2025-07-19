@@ -19,13 +19,13 @@
 Azure Firewall now supports ingestion-time transformation of logs within Azure Monitor Log Analytics.
 
 - Key changes or new features  
-This update enables selective logging and advanced filtering of firewall logs during ingestion. Users can define transformation rules to include, exclude, or modify log data before it is stored in Log Analytics. This reduces the volume of ingested data, optimizing both ingestion and storage costs while maintaining relevant security insights.
+This update enables selective logging and advanced filtering of firewall logs at ingestion time. Customers can define transformation rules to filter, modify, or drop log records before they are stored in Log Analytics. This reduces the volume of ingested data, optimizing both ingestion and storage costs. The feature improves log management flexibility by allowing tailored data collection aligned with specific monitoring and compliance needs.
 
 - Target audience affected  
-Developers, security engineers, and IT professionals who manage Azure Firewall and analyze its logs using Azure Monitor Log Analytics will benefit from this feature. It is especially useful for teams aiming to control logging costs and improve log data relevance for monitoring and incident response.
+Developers, IT professionals, and security operations teams who use Azure Firewall and rely on Log Analytics for security monitoring, troubleshooting, and auditing will benefit from this feature. It is especially relevant for organizations aiming to optimize log data costs and improve log query performance.
 
 - Important notes if any  
-Implementing ingestion-time transformations requires configuring transformation rules carefully to avoid losing critical security data. This feature is generally available, meaning it is fully supported for production workloads. Users should review their existing logging strategies to leverage this capability for cost-efficient and flexible log management.
+This capability is now generally available and can be configured through Azure Monitor’s ingestion-time transformation rules. Users should carefully design transformation policies to ensure critical security events are not inadvertently filtered out. This enhancement complements existing post-ingestion query and alerting capabilities, providing a more cost-efficient and scalable logging solution for Azure Firewall.
 
 **Details**:
 
@@ -38,4 +38,4 @@ ingestion and storage itself
 ---
 
 
-*This report was automatically generated - 2025-07-19 05:59:04 UTC*
+*This report was automatically generated - 2025-07-19 06:19:35 UTC*
