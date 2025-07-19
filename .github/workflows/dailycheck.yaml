@@ -32,7 +32,7 @@ jobs:
 
       - name: Commit and Push
         run: |
-          git config user.name "Takashi Okawa"
+          git config user.name "Takashi Okawa BOT"
           git config user.email "automate@okawa.work"
           git add .
           git commit -m "Daily Azure Updates Commit."
