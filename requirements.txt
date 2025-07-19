@@ -1,0 +1,4 @@
+# Azure Updates RSS フィード処理アプリケーションの依存関係
+feedparser>=6.0.10
+requests>=2.31.0
+urllib3>=2.0.0
