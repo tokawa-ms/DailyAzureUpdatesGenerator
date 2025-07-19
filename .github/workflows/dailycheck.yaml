@@ -29,6 +29,7 @@ jobs:
           CHECK_HOURS: ${{ secrets.CHECK_HOURS }}
         run: |
           python getlatestupdate.py
+          python getlatestupdate_en.py
 
       - name: Commit and Push
         run: |
