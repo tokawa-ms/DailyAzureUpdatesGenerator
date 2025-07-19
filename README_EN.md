@@ -3,7 +3,7 @@
 ## Overview
 
 Automatic summaries of Azure Updates are stored in the [updates_en](./updates_en) directory.
-The automatic summary feature runs daily at noon Japan time via GitHub Actions, collecting Azure Updates information from the past day and generating Japanese summaries.
+The automatic summary feature runs daily at noon Japan time via GitHub Actions, collecting Azure Updates information from the past day and generating English summaries.
 
 ## Disclaimer
 
@@ -12,13 +12,13 @@ If you find content of interest, we recommend checking the original information 
 
 # Azure Updates RSS Feed Processing Application
 
-This application reads Azure Updates RSS feeds, summarizes Azure Update information that has been updated within a specified time period using Azure OpenAI's GPT-4.1-mini model in Japanese, and outputs the results in Markdown format.
+This application reads Azure Updates RSS feeds, summarizes Azure Update information that has been updated within a specified time period using Azure OpenAI's GPT-4.1-mini model in English, and outputs the results in Markdown format.
 
 ## Features
 
 - **Robust RSS feed retrieval**: Tries multiple URLs to ensure reliable feed acquisition
 - Filtering of new updates within specified time periods
-- Japanese summary generation using Azure OpenAI
+- English summary generation using Azure OpenAI
 - Detailed report output in Markdown format
 - Comprehensive error handling and retry functionality
 - Detailed logging and monitoring
@@ -139,7 +139,7 @@ The application generates:
   - Publication date/time
   - Link
   - Category
-  - AI-generated Japanese summary
+  - AI-generated English summary
   - Original detailed description
 
 ## Error Handling
