@@ -71,11 +71,19 @@ def generate_readme_content(
     sorted_files = sorted(files_with_dates, key=lambda x: x[1], reverse=True)
 
     # 日本時間（JST）で現在時刻を取得
-    from zoneinfo import ZoneInfo
+    try:
+        # zoneinfo を使用（Python 3.9+）
+        from zoneinfo import ZoneInfo
 
-    current_time = datetime.now(ZoneInfo("Asia/Tokyo")).strftime(
-        "%Y年%m月%d日 %H:%M:%S JST"
-    )
+        current_time = datetime.now(ZoneInfo("Asia/Tokyo")).strftime(
+            "%Y年%m月%d日 %H:%M:%S JST"
+        )
+    except (ImportError, Exception):
+        # zoneinfo が使用できない場合は、UTC+9の固定オフセットを使用
+        from datetime import timezone, timedelta
+
+        jst = timezone(timedelta(hours=9))
+        current_time = datetime.now(jst).strftime("%Y年%m月%d日 %H:%M:%S JST")
 
     content = f"""# Azure Updates ファイル一覧
 
