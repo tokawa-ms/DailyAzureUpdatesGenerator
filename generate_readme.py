@@ -70,7 +70,12 @@ def generate_readme_content(
     # 日付が新しい順にソート
     sorted_files = sorted(files_with_dates, key=lambda x: x[1], reverse=True)
 
-    current_time = datetime.now().strftime("%Y年%m月%d日 %H:%M:%S")
+    # 日本時間（JST）で現在時刻を取得
+    from zoneinfo import ZoneInfo
+
+    current_time = datetime.now(ZoneInfo("Asia/Tokyo")).strftime(
+        "%Y年%m月%d日 %H:%M:%S JST"
+    )
 
     content = f"""# Azure Updates ファイル一覧
 

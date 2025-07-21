@@ -72,7 +72,7 @@ def generate_readme_content(
 
     content = f"""# Azure Updates File List
 
-Last Updated: {current_time}
+Last Updated: {current_time} UTC
 
 This directory contains the following Azure Updates files:
 
