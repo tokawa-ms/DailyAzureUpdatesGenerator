@@ -1,5 +1,9 @@
 # Azure Updates Automatic Summary
 
+## Japanese version
+
+Japanese Version is [here](./README.md)
+
 ## Overview
 
 Automatic summaries of Azure Updates are stored in the [updates_en](./updates_en) directory.

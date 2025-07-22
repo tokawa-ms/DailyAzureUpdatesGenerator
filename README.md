@@ -1,5 +1,9 @@
 # Azure Updates 自動要約
 
+## English version
+
+English Version is [here](./README_EN.md)
+
 ## 概要
 
 Azure Updates の自動要約が [updates](./updates) ディレクトリに保存されています。
