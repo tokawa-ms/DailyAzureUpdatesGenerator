@@ -29,8 +29,8 @@ jobs:
           API_VER: ${{ secrets.API_VER }}
           CHECK_HOURS: ${{ secrets.CHECK_HOURS }}
         run: |
-          python getlatestupdate.py
-          python getlatestupdate_en.py
+          python getlatestupdate.py --details
+          python getlatestupdate_en.py --details
           python generate_readme.py updates
           python generate_readme_en.py updates_en
 
