@@ -18,6 +18,8 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 import json
 import time
+import re
+from urllib.parse import urlparse, parse_qs
 
 # Third-party libraries
 import feedparser
@@ -74,7 +76,11 @@ class AzureOpenAIClient:
         logger.info("Azure OpenAI client initialized")
 
     def summarize_update(
-        self, title: str, description: str, link: str
+        self,
+        title: str,
+        description: str,
+        link: str,
+        api_details: Optional[Dict] = None,
     ) -> Optional[str]:
         """
         Summarize Azure Update in English
@@ -83,6 +89,7 @@ class AzureOpenAIClient:
             title: Update title
             description: Update details
             link: Update link
+            api_details: Detailed information retrieved from API (optional)
 
         Returns:
             Summary text (None on failure)
@@ -90,13 +97,32 @@ class AzureOpenAIClient:
         try:
             url = f"{self.endpoint}/openai/deployments/{self.deployment}/chat/completions?api-version={self.api_version}"
 
+            # Use API information in details mode
+            content_source = "RSS"
+            actual_title = title
+            actual_content = description
+
+            if api_details:
+                content_source = "API"
+                # Use API title if available
+                if api_details.get("api_title"):
+                    actual_title = api_details["api_title"]
+
+                # Use API content if available
+                if api_details.get("api_content"):
+                    actual_content = api_details["api_content"]
+
+                logger.info(
+                    f"Using {content_source} information for summary: {actual_title[:50]}..."
+                )
+
             # Create prompt
             prompt = f"""
 Please provide a concise English summary of the following Azure Update for technical professionals. Include important points for developers and IT professionals.
 
-Title: {title}
+Title: {actual_title}
 
-Details: {description}
+Details: {actual_content}
 
 Link: {link}
 
@@ -107,6 +133,8 @@ Please create the summary in the following format:
 - Important notes if any
 
 Keep the summary concise, approximately 200 words.
+
+Data source: Using {content_source} data
 """
 
             payload = {
@@ -129,7 +157,9 @@ Keep the summary concise, approximately 200 words.
 
             if "choices" in result and len(result["choices"]) > 0:
                 summary = result["choices"][0]["message"]["content"].strip()
-                logger.info(f"Summary completed: {title[:50]}...")
+                logger.info(
+                    f"Summary completed ({content_source}): {actual_title[:50]}..."
+                )
                 return summary
             else:
                 logger.error("Received unexpected response format")
@@ -140,6 +170,77 @@ Keep the summary concise, approximately 200 words.
             return None
         except Exception as e:
             logger.error("Summary processing error occurred")
+            return None
+
+    def generate_detailed_summary(
+        self, title: str, content: str, link: str
+    ) -> Optional[str]:
+        """
+        Generate detailed summary for details mode (within 500 words)
+
+        Args:
+            title: Update title
+            content: Update detailed content
+            link: Update link
+
+        Returns:
+            Detailed summary text (None on failure)
+        """
+        try:
+            url = f"{self.endpoint}/openai/deployments/{self.deployment}/chat/completions?api-version={self.api_version}"
+
+            # Create prompt for detailed summary
+            prompt = f"""
+Please provide a comprehensive technical explanation of the following Azure Update in English for IT professionals.
+
+Title: {title}
+
+Detailed Content: {content}
+
+Link: {link}
+
+Please explain in detail from the following perspectives:
+- Background and purpose of the update
+- Specific features and detailed changes
+- Technical mechanisms and implementation methods
+- Use cases and application scenarios
+- Important considerations and limitations
+- Integration with related Azure services
+
+Provide detailed information within 500 words that will be useful for technical professionals when actually utilizing this update.
+"""
+
+            payload = {
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an Azure expert. You provide detailed explanations of Azure Updates in English for technical professionals. Provide practical and specific information.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 800,
+                "temperature": 0.3,
+                "top_p": 0.95,
+            }
+
+            response = self.session.post(url, json=payload, timeout=30)
+            response.raise_for_status()
+
+            result = response.json()
+
+            if "choices" in result and len(result["choices"]) > 0:
+                detailed_summary = result["choices"][0]["message"]["content"].strip()
+                logger.info(f"Detailed summary completed: {title[:50]}...")
+                return detailed_summary
+            else:
+                logger.error("Received unexpected response format for detailed summary")
+                return None
+
+        except requests.exceptions.RequestException as e:
+            logger.error("API request error occurred for detailed summary")
+            return None
+        except Exception as e:
+            logger.error("Detailed summary processing error occurred")
             return None
 
     def __del__(self):
@@ -158,20 +259,239 @@ class AzureUpdatesProcessor:
         "https://azure.microsoft.com/en-us/updates/feed/",
     ]
 
-    def __init__(self, openai_client: AzureOpenAIClient, check_hours: int = 24):
+    # Azure Updates API base URL
+    AZURE_UPDATES_API_BASE = (
+        "https://www.microsoft.com/releasecommunications/api/v2/azure/"
+    )
+
+    def __init__(
+        self,
+        openai_client: AzureOpenAIClient,
+        check_hours: int = 24,
+        details_mode: bool = False,
+    ):
         """
         Initialize processor
 
         Args:
             openai_client: Azure OpenAI client
             check_hours: Target check period in hours
+            details_mode: Details mode (retrieve detailed information from API)
         """
         self.openai_client = openai_client
         self.check_hours = check_hours
+        self.details_mode = details_mode
         self.cutoff_time = datetime.now(timezone.utc) - timedelta(hours=check_hours)
 
         logger.info(f"Target check period: within {check_hours} hours")
         logger.info(f"Cutoff time: {self.cutoff_time}")
+        logger.info(f"Details mode: {'Enabled' if details_mode else 'Disabled'}")
+
+        # Initialize HTTP session for API access
+        self.api_session = self._create_api_session()
+
+    def _create_api_session(self) -> requests.Session:
+        """
+        Create HTTP session for Azure Updates API access
+
+        Returns:
+            Configured HTTP session
+        """
+        session = requests.Session()
+
+        # Retry strategy
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        # Browser spoofing header configuration
+        session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+                "Referer": "https://azure.microsoft.com/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "cross-site",
+            }
+        )
+
+        logger.debug("Initialized HTTP session for Azure Updates API")
+        return session
+
+    def extract_update_id(self, link: str) -> Optional[str]:
+        """
+        Extract update ID from Azure Updates link
+
+        Args:
+            link: Azure Updates link
+
+        Returns:
+            Update ID (None if cannot extract)
+        """
+        try:
+            # Parse URL
+            parsed_url = urlparse(link)
+
+            # Get id from query parameters
+            query_params = parse_qs(parsed_url.query)
+            if "id" in query_params and query_params["id"]:
+                update_id = query_params["id"][0]
+                logger.debug(
+                    f"Successfully extracted update ID: {update_id} from {link}"
+                )
+                return update_id
+
+            # Fallback: extract numbers from URL path
+            path_match = re.search(r"/(\d+)/?$", parsed_url.path)
+            if path_match:
+                update_id = path_match.group(1)
+                logger.debug(f"Extracted update ID from path: {update_id} from {link}")
+                return update_id
+
+            logger.warning(f"Could not extract update ID: {link}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Update ID extraction error: {link} - {e}")
+            return None
+
+    def fetch_update_details(self, update_id: str) -> Optional[Dict]:
+        """
+        Retrieve detailed information from Azure Updates API
+
+        Args:
+            update_id: Update ID
+
+        Returns:
+            Detailed information dictionary (None on retrieval failure)
+        """
+        try:
+            api_url = f"{self.AZURE_UPDATES_API_BASE}{update_id}"
+            logger.info(f"Retrieving API detailed information: {api_url}")
+
+            response = self.api_session.get(api_url, timeout=30)
+            response.raise_for_status()
+
+            # Log response details
+            logger.debug(f"API HTTP status: {response.status_code}")
+            logger.debug(
+                f"API Content-Type: {response.headers.get('Content-Type', 'Unknown')}"
+            )
+            logger.debug(f"API response length: {len(response.content)} bytes")
+
+            # Parse as JSON
+            data = response.json()
+
+            # Calculate data size information
+            json_str = json.dumps(data, ensure_ascii=False) if data else "{}"
+            char_count = len(json_str)
+            byte_count = len(json_str.encode("utf-8"))
+
+            logger.info(
+                f"Successfully retrieved API detailed information: {update_id} ({char_count} chars, {byte_count} bytes)"
+            )
+            logger.debug(
+                f"API response structure: {list(data.keys()) if isinstance(data, dict) else type(data)}"
+            )
+
+            return data
+
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"HTTP error in API detailed information retrieval: {update_id} - {type(e).__name__}: {e}"
+            )
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"JSON parsing error in API detailed information: {update_id} - {e}"
+            )
+            return None
+        except Exception as e:
+            logger.error(
+                f"Unexpected error in API detailed information retrieval: {update_id} - {e}"
+            )
+            return None
+
+    def enhance_update_with_details(self, update: Dict) -> Dict:
+        """
+        Enhance update information with detailed API information
+
+        Args:
+            update: Basic update information
+
+        Returns:
+            Enhanced update information
+        """
+        if not self.details_mode:
+            return update
+
+        # Extract update ID
+        update_id = self.extract_update_id(update.get("link", ""))
+        if not update_id:
+            logger.warning(
+                f"Skipping detailed information retrieval (no ID): {update.get('title', 'Unknown')}"
+            )
+            return update
+
+        # Retrieve API detailed information
+        details = self.fetch_update_details(update_id)
+        if not details:
+            logger.warning(
+                f"Failed to retrieve detailed information: {update.get('title', 'Unknown')}"
+            )
+            return update
+
+        # Enhance update with detailed information
+        enhanced_update = update.copy()
+        enhanced_update["api_details"] = details
+        enhanced_update["update_id"] = update_id
+
+        # Override/enhance existing information with information retrieved from API
+        if isinstance(details, dict):
+            # Update title
+            if "title" in details and details["title"]:
+                enhanced_update["api_title"] = details["title"]
+                logger.debug(f"Retrieved API title: {details['title']}")
+
+            # Update content
+            if "content" in details and details["content"]:
+                enhanced_update["api_content"] = details["content"]
+                logger.debug(
+                    f"Retrieved API content: {len(details['content'])} characters"
+                )
+
+            # Update publication date
+            if "publishedDateTime" in details and details["publishedDateTime"]:
+                enhanced_update["api_published"] = details["publishedDateTime"]
+                logger.debug(
+                    f"Retrieved API publication date: {details['publishedDateTime']}"
+                )
+
+            # Update category information
+            if "categories" in details and details["categories"]:
+                enhanced_update["api_categories"] = details["categories"]
+                logger.debug(f"Retrieved API categories: {details['categories']}")
+
+        logger.info(
+            f"Enhancement with detailed information completed: {update.get('title', 'Unknown')}"
+        )
+        return enhanced_update
+
+    def __del__(self):
+        """Resource cleanup"""
+        if hasattr(self, "api_session"):
+            self.api_session.close()
 
     def fetch_rss_feed(self) -> Optional[feedparser.FeedParserDict]:
         """
@@ -509,6 +829,11 @@ class AzureUpdatesProcessor:
                         tag.get("term", "") for tag in entry.get("tags", [])
                     ],
                 }
+
+                # Retrieve detailed information in details mode
+                if self.details_mode:
+                    update_info = self.enhance_update_with_details(update_info)
+
                 recent_updates.append(update_info)
                 logger.info(f"Found target update: {update_info['title']}")
 
@@ -544,16 +869,46 @@ class AzureUpdatesProcessor:
             if i > 1:
                 time.sleep(1)
 
-            # Generate summary
+            # Generate summary (use API detailed information in details mode)
+            api_details = (
+                update if self.details_mode and update.get("api_details") else None
+            )
             summary = self.openai_client.summarize_update(
-                update["title"], update["description"], update["link"]
+                update["title"], update["description"], update["link"], api_details
             )
 
             update["summary"] = summary
+
+            # Generate detailed summary in details mode
+            if self.details_mode:
+                # Additional wait for API rate limiting
+                time.sleep(1)
+
+                # Determine content for detailed summary (prioritize API information)
+                detail_title = update.get("api_title", update["title"])
+                detail_content = update.get("api_content", update["description"])
+
+                detailed_summary = self.openai_client.generate_detailed_summary(
+                    detail_title, detail_content, update["link"]
+                )
+                update["detailed_summary"] = detailed_summary
+
+                if detailed_summary:
+                    logger.info(
+                        f"Detailed summary generation completed: {update['title'][:50]}..."
+                    )
+                else:
+                    logger.warning(
+                        f"Detailed summary generation failed: {update['title'][:50]}..."
+                    )
+
             processed_updates.append(update)
 
             if summary:
-                logger.info(f"Summary generation completed: {update['title'][:50]}...")
+                mode_info = "Details mode" if self.details_mode else "Standard mode"
+                logger.info(
+                    f"Summary generation completed ({mode_info}): {update['title'][:50]}..."
+                )
             else:
                 logger.warning(f"Summary generation failed: {update['title'][:50]}...")
 
@@ -570,11 +925,13 @@ class AzureUpdatesProcessor:
             Markdown format report
         """
         today = datetime.now().strftime("%B %d, %Y")
+        mode_text = "Details Mode" if self.details_mode else "Standard Mode"
         report_lines = [
-            f"# {today} - Azure Updates Summary Report",
+            f"# {today} - Azure Updates Summary Report ({mode_text})",
             f"",
             f"**Generated on**: {today}",
             f"**Target period**: Within the last {self.check_hours} hours",
+            f"**Processing mode**: {mode_text}",
             f"**Number of updates**: {len(updates)} items",
             f"",
         ]
@@ -592,18 +949,42 @@ class AzureUpdatesProcessor:
             report_lines.extend(["## Update List", ""])
 
             for i, update in enumerate(updates, 1):
+                # Determine display title (prioritize API information in details mode)
+                display_title = update["title"]
+                if self.details_mode and update.get("api_title"):
+                    display_title = update["api_title"]
+
                 report_lines.extend(
                     [
-                        f"### {i}. {update['title']}",
+                        f"### {i}. {display_title}",
                         "",
                         f"**Published**: {update['published'].strftime('%B %d, %Y %H:%M:%S UTC')}",
-                        f"**Link**: [{update['title']}]({update['link']})",
+                        f"**Link**: [{display_title}]({update['link']})",
                         "",
                     ]
                 )
 
-                if update["categories"]:
-                    categories_str = ", ".join(update["categories"])
+                # Display details mode information
+                if self.details_mode and update.get("update_id"):
+                    report_lines.extend(
+                        [
+                            f"**Update ID**: {update['update_id']}",
+                            f"**Data source**: Azure Updates API",
+                            "",
+                        ]
+                    )
+
+                # Category information (prioritize API information in details mode)
+                categories = update["categories"]
+                if self.details_mode and update.get("api_categories"):
+                    categories = update["api_categories"]
+
+                if categories:
+                    categories_str = (
+                        ", ".join(categories)
+                        if isinstance(categories, list)
+                        else str(categories)
+                    )
                     report_lines.extend([f"**Categories**: {categories_str}", ""])
 
                 if update.get("summary"):
@@ -611,9 +992,20 @@ class AzureUpdatesProcessor:
                 else:
                     report_lines.extend(["**Summary**: Generation failed", ""])
 
-                report_lines.extend(
-                    ["**Details**:", "", update["description"], "", "---", ""]
-                )
+                # Detailed content (Details mode: GPT detailed summary, Standard mode: API/RSS information)
+                if self.details_mode and update.get("detailed_summary"):
+                    # Details mode: Use GPT-generated detailed summary
+                    report_lines.extend(
+                        ["**Details**:", "", update["detailed_summary"], "", "---", ""]
+                    )
+                else:
+                    # Standard mode: Use API information or RSS information
+                    detail_content = update["description"]
+                    if self.details_mode and update.get("api_content"):
+                        detail_content = update["api_content"]
+                    report_lines.extend(
+                        ["**Details**:", "", detail_content, "", "---", ""]
+                    )
 
         report_lines.extend(
             [
@@ -700,6 +1092,11 @@ def main():
     parser.add_argument(
         "--test-feed", action="store_true", help="Only execute RSS feed test retrieval"
     )
+    parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Details mode: Retrieve detailed information from Azure Updates API",
+    )
 
     args = parser.parse_args()
 
@@ -711,7 +1108,9 @@ def main():
         # Test mode
         if args.test_feed:
             logger.info("Running in RSS feed test mode...")
-            processor = AzureUpdatesProcessor(None, 24)  # No OpenAI client
+            processor = AzureUpdatesProcessor(
+                None, 24, False
+            )  # No OpenAI client, details mode disabled
             feed = processor.fetch_rss_feed()
             if feed:
                 print(f"\n✅ Feed retrieval successful!")
@@ -738,6 +1137,13 @@ def main():
                         print(f"  {i}. {title[:80]}...")
                         print(f"     📅 Updated: {updated}")
                         print(f"     🔗 Link: {link}")
+
+                        # Update ID extraction test
+                        update_id = processor.extract_update_id(link)
+                        if update_id:
+                            print(f"     🆔 Update ID: {update_id}")
+                        else:
+                            print(f"     ❌ Update ID extraction failed")
 
                         # Date parsing test
                         parsed_date = processor.parse_date(updated)
@@ -772,7 +1178,9 @@ def main():
 
         # Initialize Azure Updates processor
         processor = AzureUpdatesProcessor(
-            openai_client=openai_client, check_hours=config["check_hours"]
+            openai_client=openai_client,
+            check_hours=config["check_hours"],
+            details_mode=args.details,
         )
 
         # Process updates
@@ -787,7 +1195,8 @@ def main():
         output_path = processor.save_report(report_content, args.output_dir)
 
         # Display results
-        print(f"\n✅ Processing completed!")
+        mode_info = "Details mode" if args.details else "Standard mode"
+        print(f"\n✅ Processing completed! ({mode_info})")
         print(f"📊 Processed items: {len(updates)} items")
         print(f"📁 Output file: {output_path}")
 
@@ -795,7 +1204,8 @@ def main():
             print(f"\n📋 Update list:")
             for i, update in enumerate(updates, 1):
                 status = "✅" if update.get("summary") else "❌"
-                print(f"  {i}. {status} {update['title'][:60]}...")
+                api_indicator = "🔍" if args.details and update.get("update_id") else ""
+                print(f"  {i}. {status}{api_indicator} {update['title'][:60]}...")
 
         logger.info("Processing completed successfully")
 
