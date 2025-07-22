@@ -18,6 +18,8 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 import json
 import time
+import re
+from urllib.parse import urlparse, parse_qs
 
 # サードパーティライブラリ
 import feedparser
@@ -74,7 +76,11 @@ class AzureOpenAIClient:
         logger.info("Azure OpenAI クライアントを初期化しました")
 
     def summarize_update(
-        self, title: str, description: str, link: str
+        self,
+        title: str,
+        description: str,
+        link: str,
+        api_details: Optional[Dict] = None,
     ) -> Optional[str]:
         """
         Azure Update を日本語で要約
@@ -83,6 +89,7 @@ class AzureOpenAIClient:
             title: アップデートのタイトル
             description: アップデートの詳細
             link: アップデートのリンク
+            api_details: API から取得した詳細情報（オプション）
 
         Returns:
             要約テキスト（失敗時はNone）
@@ -90,13 +97,32 @@ class AzureOpenAIClient:
         try:
             url = f"{self.endpoint}/openai/deployments/{self.deployment}/chat/completions?api-version={self.api_version}"
 
+            # 詳細モードの場合はAPI情報を使用
+            content_source = "RSS"
+            actual_title = title
+            actual_content = description
+
+            if api_details:
+                content_source = "API"
+                # APIから取得したタイトルがあれば使用
+                if api_details.get("api_title"):
+                    actual_title = api_details["api_title"]
+
+                # APIから取得した本文があれば使用
+                if api_details.get("api_content"):
+                    actual_content = api_details["api_content"]
+
+                logger.info(
+                    f"要約処理で{content_source}情報を使用: {actual_title[:50]}..."
+                )
+
             # プロンプト作成
             prompt = f"""
 以下のAzure Updateを日本語で簡潔に要約してください。技術者向けに重要なポイントを含めてください。
 
-タイトル: {title}
+タイトル: {actual_title}
 
-詳細: {description}
+詳細: {actual_content}
 
 リンク: {link}
 
@@ -107,6 +133,8 @@ class AzureOpenAIClient:
 - 注意点があれば記載
 
 200文字程度で簡潔にまとめてください。
+
+情報源: {content_source}データを使用
 """
 
             payload = {
@@ -129,7 +157,7 @@ class AzureOpenAIClient:
 
             if "choices" in result and len(result["choices"]) > 0:
                 summary = result["choices"][0]["message"]["content"].strip()
-                logger.info(f"要約完了: {title[:50]}...")
+                logger.info(f"要約完了({content_source}): {actual_title[:50]}...")
                 return summary
             else:
                 logger.error("予期しないレスポンス形式を受信しました")
@@ -140,6 +168,77 @@ class AzureOpenAIClient:
             return None
         except Exception as e:
             logger.error("要約処理エラーが発生しました")
+            return None
+
+    def generate_detailed_summary(
+        self, title: str, content: str, link: str
+    ) -> Optional[str]:
+        """
+        詳細モード用の詳細要約を生成（500文字以内）
+
+        Args:
+            title: アップデートのタイトル
+            content: アップデートの詳細内容
+            link: アップデートのリンク
+
+        Returns:
+            詳細要約テキスト（失敗時はNone）
+        """
+        try:
+            url = f"{self.endpoint}/openai/deployments/{self.deployment}/chat/completions?api-version={self.api_version}"
+
+            # 詳細要約用のプロンプト作成
+            prompt = f"""
+以下のAzure Updateについて、技術者向けに詳細な説明を日本語で生成してください。
+
+タイトル: {title}
+
+詳細内容: {content}
+
+リンク: {link}
+
+以下の観点から詳細に説明してください：
+- アップデートの背景と目的
+- 具体的な機能や変更内容の詳細
+- 技術的な仕組みや実装方法
+- 活用シナリオや使用例
+- 注意点や制限事項
+- 関連するAzureサービスとの連携
+
+500文字以内で、技術者が実際に活用する際に役立つ詳細情報を提供してください。
+"""
+
+            payload = {
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "あなたはAzureの専門家です。Azure Updateの詳細を技術者向けに分かりやすく日本語で解説します。実用的で具体的な情報を提供してください。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 800,
+                "temperature": 0.3,
+                "top_p": 0.95,
+            }
+
+            response = self.session.post(url, json=payload, timeout=30)
+            response.raise_for_status()
+
+            result = response.json()
+
+            if "choices" in result and len(result["choices"]) > 0:
+                detailed_summary = result["choices"][0]["message"]["content"].strip()
+                logger.info(f"詳細要約完了: {title[:50]}...")
+                return detailed_summary
+            else:
+                logger.error("詳細要約で予期しないレスポンス形式を受信しました")
+                return None
+
+        except requests.exceptions.RequestException as e:
+            logger.error("詳細要約のAPI リクエストエラーが発生しました")
+            return None
+        except Exception as e:
+            logger.error("詳細要約処理エラーが発生しました")
             return None
 
     def __del__(self):
@@ -158,20 +257,225 @@ class AzureUpdatesProcessor:
         "https://azure.microsoft.com/en-us/updates/feed/",
     ]
 
-    def __init__(self, openai_client: AzureOpenAIClient, check_hours: int = 24):
+    # Azure Updates API の基本URL
+    AZURE_UPDATES_API_BASE = (
+        "https://www.microsoft.com/releasecommunications/api/v2/azure/"
+    )
+
+    def __init__(
+        self,
+        openai_client: AzureOpenAIClient,
+        check_hours: int = 24,
+        details_mode: bool = False,
+    ):
         """
         プロセッサを初期化
 
         Args:
             openai_client: Azure OpenAI クライアント
             check_hours: チェック対象時間（時間）
+            details_mode: 詳細モード（APIから詳細情報を取得）
         """
         self.openai_client = openai_client
         self.check_hours = check_hours
+        self.details_mode = details_mode
         self.cutoff_time = datetime.now(timezone.utc) - timedelta(hours=check_hours)
 
         logger.info(f"チェック対象時間: {check_hours}時間以内")
         logger.info(f"カットオフ時間: {self.cutoff_time}")
+        logger.info(f"詳細モード: {'有効' if details_mode else '無効'}")
+
+        # APIアクセス用のHTTPセッションを初期化
+        self.api_session = self._create_api_session()
+
+    def _create_api_session(self) -> requests.Session:
+        """
+        Azure Updates API アクセス用のHTTPセッションを作成
+
+        Returns:
+            設定済みのHTTPセッション
+        """
+        session = requests.Session()
+
+        # リトライ戦略
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        # ブラウザを偽装するヘッダー設定
+        session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+                "Referer": "https://azure.microsoft.com/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "cross-site",
+            }
+        )
+
+        logger.debug("Azure Updates API用HTTPセッションを初期化しました")
+        return session
+
+    def extract_update_id(self, link: str) -> Optional[str]:
+        """
+        Azure Updates のリンクからアップデートIDを抽出
+
+        Args:
+            link: Azure Updates のリンク
+
+        Returns:
+            アップデートID（抽出できない場合はNone）
+        """
+        try:
+            # URLをパース
+            parsed_url = urlparse(link)
+
+            # クエリパラメータから id を取得
+            query_params = parse_qs(parsed_url.query)
+            if "id" in query_params and query_params["id"]:
+                update_id = query_params["id"][0]
+                logger.debug(f"アップデートID抽出成功: {update_id} from {link}")
+                return update_id
+
+            # フォールバック: URLパスから数字を抽出
+            path_match = re.search(r"/(\d+)/?$", parsed_url.path)
+            if path_match:
+                update_id = path_match.group(1)
+                logger.debug(f"パスからアップデートID抽出: {update_id} from {link}")
+                return update_id
+
+            logger.warning(f"アップデートIDを抽出できませんでした: {link}")
+            return None
+
+        except Exception as e:
+            logger.error(f"アップデートID抽出エラー: {link} - {e}")
+            return None
+
+    def fetch_update_details(self, update_id: str) -> Optional[Dict]:
+        """
+        Azure Updates API から詳細情報を取得
+
+        Args:
+            update_id: アップデートID
+
+        Returns:
+            詳細情報辞書（取得失敗時はNone）
+        """
+        try:
+            api_url = f"{self.AZURE_UPDATES_API_BASE}{update_id}"
+            logger.info(f"API詳細情報取得中: {api_url}")
+
+            response = self.api_session.get(api_url, timeout=30)
+            response.raise_for_status()
+
+            # レスポンスの詳細をログ出力
+            logger.debug(f"API HTTP ステータス: {response.status_code}")
+            logger.debug(
+                f"API Content-Type: {response.headers.get('Content-Type', 'Unknown')}"
+            )
+            logger.debug(f"API レスポンス長: {len(response.content)} bytes")
+
+            # JSONとして解析
+            data = response.json()
+
+            # データサイズ情報を計算
+            json_str = json.dumps(data, ensure_ascii=False) if data else "{}"
+            char_count = len(json_str)
+            byte_count = len(json_str.encode("utf-8"))
+
+            logger.info(
+                f"API詳細情報取得成功: {update_id} ({char_count}文字, {byte_count}バイト)"
+            )
+            logger.debug(
+                f"API レスポンス構造: {list(data.keys()) if isinstance(data, dict) else type(data)}"
+            )
+
+            return data
+
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"API詳細情報取得でHTTPエラー: {update_id} - {type(e).__name__}: {e}"
+            )
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(f"API詳細情報のJSON解析エラー: {update_id} - {e}")
+            return None
+        except Exception as e:
+            logger.error(f"API詳細情報取得で予期しないエラー: {update_id} - {e}")
+            return None
+
+    def enhance_update_with_details(self, update: Dict) -> Dict:
+        """
+        更新情報を詳細API情報で拡張
+
+        Args:
+            update: 基本更新情報
+
+        Returns:
+            拡張された更新情報
+        """
+        if not self.details_mode:
+            return update
+
+        # アップデートIDを抽出
+        update_id = self.extract_update_id(update.get("link", ""))
+        if not update_id:
+            logger.warning(
+                f"詳細情報取得をスキップ（IDなし）: {update.get('title', 'Unknown')}"
+            )
+            return update
+
+        # API詳細情報を取得
+        details = self.fetch_update_details(update_id)
+        if not details:
+            logger.warning(f"詳細情報取得失敗: {update.get('title', 'Unknown')}")
+            return update
+
+        # 詳細情報で更新を拡張
+        enhanced_update = update.copy()
+        enhanced_update["api_details"] = details
+        enhanced_update["update_id"] = update_id
+
+        # APIから取得した情報で既存情報を上書き/拡張
+        if isinstance(details, dict):
+            # タイトルの更新
+            if "title" in details and details["title"]:
+                enhanced_update["api_title"] = details["title"]
+                logger.debug(f"APIタイトル取得: {details['title']}")
+
+            # 本文の更新
+            if "content" in details and details["content"]:
+                enhanced_update["api_content"] = details["content"]
+                logger.debug(f"API本文取得: {len(details['content'])} 文字")
+
+            # 公開日の更新
+            if "publishedDateTime" in details and details["publishedDateTime"]:
+                enhanced_update["api_published"] = details["publishedDateTime"]
+                logger.debug(f"API公開日取得: {details['publishedDateTime']}")
+
+            # カテゴリ情報の更新
+            if "categories" in details and details["categories"]:
+                enhanced_update["api_categories"] = details["categories"]
+                logger.debug(f"APIカテゴリ取得: {details['categories']}")
+
+        logger.info(f"詳細情報で拡張完了: {update.get('title', 'Unknown')}")
+        return enhanced_update
+
+    def __del__(self):
+        """リソースクリーンアップ"""
+        if hasattr(self, "api_session"):
+            self.api_session.close()
 
     def fetch_rss_feed(self) -> Optional[feedparser.FeedParserDict]:
         """
@@ -507,6 +811,11 @@ class AzureUpdatesProcessor:
                         tag.get("term", "") for tag in entry.get("tags", [])
                     ],
                 }
+
+                # 詳細モードの場合は詳細情報を取得
+                if self.details_mode:
+                    update_info = self.enhance_update_with_details(update_info)
+
                 recent_updates.append(update_info)
                 logger.info(f"対象更新を発見: {update_info['title']}")
 
@@ -540,16 +849,40 @@ class AzureUpdatesProcessor:
             if i > 1:
                 time.sleep(1)
 
-            # 要約生成
+            # 要約生成（詳細モードの場合はAPI詳細情報を使用）
+            api_details = (
+                update if self.details_mode and update.get("api_details") else None
+            )
             summary = self.openai_client.summarize_update(
-                update["title"], update["description"], update["link"]
+                update["title"], update["description"], update["link"], api_details
             )
 
             update["summary"] = summary
+
+            # 詳細モードの場合は詳細要約も生成
+            if self.details_mode:
+                # APIレート制限を考慮して追加待機
+                time.sleep(1)
+
+                # 詳細要約用のコンテンツを決定（API情報を優先）
+                detail_title = update.get("api_title", update["title"])
+                detail_content = update.get("api_content", update["description"])
+
+                detailed_summary = self.openai_client.generate_detailed_summary(
+                    detail_title, detail_content, update["link"]
+                )
+                update["detailed_summary"] = detailed_summary
+
+                if detailed_summary:
+                    logger.info(f"詳細要約生成完了: {update['title'][:50]}...")
+                else:
+                    logger.warning(f"詳細要約生成失敗: {update['title'][:50]}...")
+
             processed_updates.append(update)
 
             if summary:
-                logger.info(f"要約生成完了: {update['title'][:50]}...")
+                mode_info = "詳細モード" if self.details_mode else "標準モード"
+                logger.info(f"要約生成完了({mode_info}): {update['title'][:50]}...")
             else:
                 logger.warning(f"要約生成失敗: {update['title'][:50]}...")
 
@@ -566,11 +899,13 @@ class AzureUpdatesProcessor:
             マークダウン形式のレポート
         """
         today = datetime.now().strftime("%Y年%m月%d日")
+        mode_text = "詳細モード" if self.details_mode else "標準モード"
         report_lines = [
-            f"# {today} - Azure Updates 要約レポート",
+            f"# {today} - Azure Updates 要約レポート ({mode_text})",
             f"",
             f"**生成日時**: {today}",
             f"**対象期間**: 過去 {self.check_hours} 時間以内",
+            f"**処理モード**: {mode_text}",
             f"**更新件数**: {len(updates)} 件",
             f"",
         ]
@@ -588,18 +923,42 @@ class AzureUpdatesProcessor:
             report_lines.extend(["## 更新一覧", ""])
 
             for i, update in enumerate(updates, 1):
+                # 表示用のタイトルを決定（詳細モードではAPI情報を優先）
+                display_title = update["title"]
+                if self.details_mode and update.get("api_title"):
+                    display_title = update["api_title"]
+
                 report_lines.extend(
                     [
-                        f"### {i}. {update['title']}",
+                        f"### {i}. {display_title}",
                         "",
                         f"**公開日時**: {update['published'].strftime('%Y年%m月%d日 %H:%M:%S UTC')}",
-                        f"**リンク**: [{update['title']}]({update['link']})",
+                        f"**リンク**: [{display_title}]({update['link']})",
                         "",
                     ]
                 )
 
-                if update["categories"]:
-                    categories_str = ", ".join(update["categories"])
+                # 詳細モード情報の表示
+                if self.details_mode and update.get("update_id"):
+                    report_lines.extend(
+                        [
+                            f"**アップデートID**: {update['update_id']}",
+                            f"**情報源**: Azure Updates API",
+                            "",
+                        ]
+                    )
+
+                # カテゴリ情報（詳細モードではAPI情報を優先）
+                categories = update["categories"]
+                if self.details_mode and update.get("api_categories"):
+                    categories = update["api_categories"]
+
+                if categories:
+                    categories_str = (
+                        ", ".join(categories)
+                        if isinstance(categories, list)
+                        else str(categories)
+                    )
                     report_lines.extend([f"**カテゴリ**: {categories_str}", ""])
 
                 if update.get("summary"):
@@ -607,9 +966,20 @@ class AzureUpdatesProcessor:
                 else:
                     report_lines.extend(["**要約**: 生成に失敗しました", ""])
 
-                report_lines.extend(
-                    ["**詳細**:", "", update["description"], "", "---", ""]
-                )
+                # 詳細内容（詳細モードではGPT詳細要約、標準モードではAPI/RSS情報）
+                if self.details_mode and update.get("detailed_summary"):
+                    # 詳細モード：GPT生成の詳細要約を使用
+                    report_lines.extend(
+                        ["**詳細**:", "", update["detailed_summary"], "", "---", ""]
+                    )
+                else:
+                    # 標準モード：API情報またはRSS情報を使用
+                    detail_content = update["description"]
+                    if self.details_mode and update.get("api_content"):
+                        detail_content = update["api_content"]
+                    report_lines.extend(
+                        ["**詳細**:", "", detail_content, "", "---", ""]
+                    )
 
         report_lines.extend(
             [
@@ -696,6 +1066,11 @@ def main():
     parser.add_argument(
         "--test-feed", action="store_true", help="RSSフィードのテスト取得のみ実行"
     )
+    parser.add_argument(
+        "--details",
+        action="store_true",
+        help="詳細モード: Azure Updates APIから詳細情報を取得",
+    )
 
     args = parser.parse_args()
 
@@ -707,7 +1082,9 @@ def main():
         # テストモードの場合
         if args.test_feed:
             logger.info("RSSフィードテストモードで実行中...")
-            processor = AzureUpdatesProcessor(None, 24)  # OpenAI クライアントなし
+            processor = AzureUpdatesProcessor(
+                None, 24, False
+            )  # OpenAI クライアントなし、詳細モード無効
             feed = processor.fetch_rss_feed()
             if feed:
                 print(f"\n✅ フィード取得成功!")
@@ -734,6 +1111,13 @@ def main():
                         print(f"  {i}. {title[:80]}...")
                         print(f"     📅 更新日: {updated}")
                         print(f"     🔗 リンク: {link}")
+
+                        # アップデートID抽出テスト
+                        update_id = processor.extract_update_id(link)
+                        if update_id:
+                            print(f"     🆔 アップデートID: {update_id}")
+                        else:
+                            print(f"     ❌ アップデートID抽出失敗")
 
                         # 日付パーステスト
                         parsed_date = processor.parse_date(updated)
@@ -766,7 +1150,9 @@ def main():
 
         # Azure Updates プロセッサ初期化
         processor = AzureUpdatesProcessor(
-            openai_client=openai_client, check_hours=config["check_hours"]
+            openai_client=openai_client,
+            check_hours=config["check_hours"],
+            details_mode=args.details,
         )
 
         # 更新処理
@@ -781,7 +1167,8 @@ def main():
         output_path = processor.save_report(report_content, args.output_dir)
 
         # 結果表示
-        print(f"\n✅ 処理完了!")
+        mode_info = "詳細モード" if args.details else "標準モード"
+        print(f"\n✅ 処理完了! ({mode_info})")
         print(f"📊 処理件数: {len(updates)} 件")
         print(f"📁 出力ファイル: {output_path}")
 
@@ -789,7 +1176,8 @@ def main():
             print(f"\n📋 更新一覧:")
             for i, update in enumerate(updates, 1):
                 status = "✅" if update.get("summary") else "❌"
-                print(f"  {i}. {status} {update['title'][:60]}...")
+                api_indicator = "🔍" if args.details and update.get("update_id") else ""
+                print(f"  {i}. {status}{api_indicator} {update['title'][:60]}...")
 
         logger.info("処理が正常に完了しました")
 
