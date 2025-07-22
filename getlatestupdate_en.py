@@ -192,6 +192,7 @@ Data source: Using {content_source} data
             # Create prompt for detailed summary
             prompt = f"""
 Please provide a comprehensive technical explanation of the following Azure Update in English for IT professionals.
+You are given the role of generating reports. There is no need for a human response to instructions. Generate a calm and detailed summary sentence.
 
 Title: {title}
 
