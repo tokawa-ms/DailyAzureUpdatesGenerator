@@ -17,6 +17,7 @@ Azure Updates の自動要約が [updates](./updates) ディレクトリに保�
 ## 機能
 
 - **堅牢な RSS フィード取得**: 複数の URL を試行して確実にフィードを取得
+- **詳細モード**: Azure Updates API から詳細情報を取得（`--details` オプション）
 - 指定時間内の新しい更新のフィルタリング
 - Azure OpenAI を使用した日本語要約生成
 - マークダウン形式での詳細レポート出力
@@ -78,6 +79,9 @@ python getlatestupdate.py
 # 過去12時間の更新をチェック
 python getlatestupdate.py --hours 12
 
+# 詳細モード（Azure Updates APIから詳細情報を取得）
+python getlatestupdate.py --details
+
 # 出力ディレクトリを指定
 python getlatestupdate.py --output-dir reports
 
@@ -87,9 +91,28 @@ python getlatestupdate.py --verbose
 # RSSフィードのテストのみ実行
 python getlatestupdate.py --test-feed
 
-# 複数のオプションを組み合わせ
-python getlatestupdate.py --hours 6 --output-dir reports --verbose
+# 複数のオプションを組み合わせ（詳細モード + 詳細ログ + 72時間）
+python getlatestupdate.py --details --verbose --hours 72
 ```
+
+### 詳細モードの使用方法
+
+詳細モード（`--details`）では、RSS フィードの情報に加えて Azure Updates API から詳細な情報を取得します：
+
+```cmd
+# 詳細モードで実行
+python getlatestupdate.py --details
+
+# 詳細モードを含む実行例バッチファイル
+run_details_example.bat
+```
+
+**詳細モードの特徴：**
+
+- Azure Updates API から各記事の詳細情報を取得
+- より正確で完全な記事タイトルと本文を使用
+- API から取得した情報をレポートに表示
+- 詳細な情報源の追跡とログ出力
 
 ### 環境変数の設定例（Windows）
 
@@ -117,6 +140,18 @@ set CHECK_HOURS=24
 
 4. **複数 URL 試行**: アプリケーションは自動で複数の RSS URL を試行します
 
+### 詳細モード関連のトラブルシューティング
+
+1. **詳細モードのテスト**:
+
+   ```cmd
+   python test_details.py
+   ```
+
+2. **API アクセスエラー**: Azure Updates API が一時的に利用できない場合、標準モードで処理を続行
+
+3. **アップデート ID 抽出失敗**: 一部の記事で ID が抽出できない場合は RSS 情報を使用
+
 ### 一般的なエラーと対処法
 
 - **"フィードにエントリがありません"**: RSS URL が変更された可能性があります
@@ -132,15 +167,27 @@ set CHECK_HOURS=24
 
 ## レポートの内容
 
+### 標準モード
+
 - 生成日時と対象期間
 - 更新件数の概要
 - 各更新の詳細：
-  - タイトル
+  - タイトル（RSS フィードから）
   - 公開日時
   - リンク
   - カテゴリ
   - AI 生成の日本語要約
-  - 元の詳細説明
+  - 元の詳細説明（RSS フィードから）
+
+### 詳細モード（`--details`）
+
+上記に加えて：
+
+- **アップデート ID**: 個別記事の識別子
+- **情報源**: Azure Updates API 使用の明示
+- **強化されたタイトル**: API から取得したより正確なタイトル
+- **詳細な本文**: API から取得した完全な記事内容
+- **改善された要約**: より詳細で正確な情報に基づく要約
 
 ## エラーハンドリング
 
