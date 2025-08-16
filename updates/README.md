@@ -1,38 +1,39 @@
 # Azure Updates ファイル一覧
 
-最終更新: 2025年08月15日 12:01:17 JST
+最終更新: 2025年08月16日 12:01:18 JST
 
 このディレクトリには、以下の Azure Updates ファイルが含まれています：
 
 ## Daily Azure Updates （新しい順）
 
-総ファイル数: 28
+総ファイル数: 29
 
-1. [azure-updates-2025-08-15.md](./azure-updates-2025-08-15.md) - 2025年08月15日
-2. [azure-updates-2025-08-14.md](./azure-updates-2025-08-14.md) - 2025年08月14日
-3. [azure-updates-2025-08-13.md](./azure-updates-2025-08-13.md) - 2025年08月13日
-4. [azure-updates-2025-08-12.md](./azure-updates-2025-08-12.md) - 2025年08月12日
-5. [azure-updates-2025-08-11.md](./azure-updates-2025-08-11.md) - 2025年08月11日
-6. [azure-updates-2025-08-10.md](./azure-updates-2025-08-10.md) - 2025年08月10日
-7. [azure-updates-2025-08-09.md](./azure-updates-2025-08-09.md) - 2025年08月09日
-8. [azure-updates-2025-08-08.md](./azure-updates-2025-08-08.md) - 2025年08月08日
-9. [azure-updates-2025-08-07.md](./azure-updates-2025-08-07.md) - 2025年08月07日
-10. [azure-updates-2025-08-06.md](./azure-updates-2025-08-06.md) - 2025年08月06日
-11. [azure-updates-2025-08-05.md](./azure-updates-2025-08-05.md) - 2025年08月05日
-12. [azure-updates-2025-08-04.md](./azure-updates-2025-08-04.md) - 2025年08月04日
-13. [azure-updates-2025-08-03.md](./azure-updates-2025-08-03.md) - 2025年08月03日
-14. [azure-updates-2025-08-02.md](./azure-updates-2025-08-02.md) - 2025年08月02日
-15. [azure-updates-2025-08-01.md](./azure-updates-2025-08-01.md) - 2025年08月01日
-16. [azure-updates-2025-07-31.md](./azure-updates-2025-07-31.md) - 2025年07月31日
-17. [azure-updates-2025-07-30.md](./azure-updates-2025-07-30.md) - 2025年07月30日
-18. [azure-updates-2025-07-29.md](./azure-updates-2025-07-29.md) - 2025年07月29日
-19. [azure-updates-2025-07-28.md](./azure-updates-2025-07-28.md) - 2025年07月28日
-20. [azure-updates-2025-07-27.md](./azure-updates-2025-07-27.md) - 2025年07月27日
-21. [azure-updates-2025-07-26.md](./azure-updates-2025-07-26.md) - 2025年07月26日
-22. [azure-updates-2025-07-25.md](./azure-updates-2025-07-25.md) - 2025年07月25日
-23. [azure-updates-2025-07-24.md](./azure-updates-2025-07-24.md) - 2025年07月24日
-24. [azure-updates-2025-07-23.md](./azure-updates-2025-07-23.md) - 2025年07月23日
-25. [azure-updates-2025-07-22.md](./azure-updates-2025-07-22.md) - 2025年07月22日
-26. [azure-updates-2025-07-21.md](./azure-updates-2025-07-21.md) - 2025年07月21日
-27. [azure-updates-2025-07-20.md](./azure-updates-2025-07-20.md) - 2025年07月20日
-28. [azure-updates-2025-07-19.md](./azure-updates-2025-07-19.md) - 2025年07月19日
+1. [azure-updates-2025-08-16.md](./azure-updates-2025-08-16.md) - 2025年08月16日
+2. [azure-updates-2025-08-15.md](./azure-updates-2025-08-15.md) - 2025年08月15日
+3. [azure-updates-2025-08-14.md](./azure-updates-2025-08-14.md) - 2025年08月14日
+4. [azure-updates-2025-08-13.md](./azure-updates-2025-08-13.md) - 2025年08月13日
+5. [azure-updates-2025-08-12.md](./azure-updates-2025-08-12.md) - 2025年08月12日
+6. [azure-updates-2025-08-11.md](./azure-updates-2025-08-11.md) - 2025年08月11日
+7. [azure-updates-2025-08-10.md](./azure-updates-2025-08-10.md) - 2025年08月10日
+8. [azure-updates-2025-08-09.md](./azure-updates-2025-08-09.md) - 2025年08月09日
+9. [azure-updates-2025-08-08.md](./azure-updates-2025-08-08.md) - 2025年08月08日
+10. [azure-updates-2025-08-07.md](./azure-updates-2025-08-07.md) - 2025年08月07日
+11. [azure-updates-2025-08-06.md](./azure-updates-2025-08-06.md) - 2025年08月06日
+12. [azure-updates-2025-08-05.md](./azure-updates-2025-08-05.md) - 2025年08月05日
+13. [azure-updates-2025-08-04.md](./azure-updates-2025-08-04.md) - 2025年08月04日
+14. [azure-updates-2025-08-03.md](./azure-updates-2025-08-03.md) - 2025年08月03日
+15. [azure-updates-2025-08-02.md](./azure-updates-2025-08-02.md) - 2025年08月02日
+16. [azure-updates-2025-08-01.md](./azure-updates-2025-08-01.md) - 2025年08月01日
+17. [azure-updates-2025-07-31.md](./azure-updates-2025-07-31.md) - 2025年07月31日
+18. [azure-updates-2025-07-30.md](./azure-updates-2025-07-30.md) - 2025年07月30日
+19. [azure-updates-2025-07-29.md](./azure-updates-2025-07-29.md) - 2025年07月29日
+20. [azure-updates-2025-07-28.md](./azure-updates-2025-07-28.md) - 2025年07月28日
+21. [azure-updates-2025-07-27.md](./azure-updates-2025-07-27.md) - 2025年07月27日
+22. [azure-updates-2025-07-26.md](./azure-updates-2025-07-26.md) - 2025年07月26日
+23. [azure-updates-2025-07-25.md](./azure-updates-2025-07-25.md) - 2025年07月25日
+24. [azure-updates-2025-07-24.md](./azure-updates-2025-07-24.md) - 2025年07月24日
+25. [azure-updates-2025-07-23.md](./azure-updates-2025-07-23.md) - 2025年07月23日
+26. [azure-updates-2025-07-22.md](./azure-updates-2025-07-22.md) - 2025年07月22日
+27. [azure-updates-2025-07-21.md](./azure-updates-2025-07-21.md) - 2025年07月21日
+28. [azure-updates-2025-07-20.md](./azure-updates-2025-07-20.md) - 2025年07月20日
+29. [azure-updates-2025-07-19.md](./azure-updates-2025-07-19.md) - 2025年07月19日
