@@ -265,6 +265,9 @@ Please explain in detail from the following perspectives:
 - Important considerations and limitations
 - Integration with related Azure services
 
+Use appropriate technical terminology to ensure clarity for engineers.
+Generate the summary solely from the provided information, and do not speculate or infer any update details beyond what is given.
+
 Provide detailed information within 500 words that will be useful for technical professionals when actually utilizing this update.
 """
 
