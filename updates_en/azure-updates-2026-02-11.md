@@ -1,47 +1,39 @@
-# February 11, 2026 - Azure Updates Summary Report (Details Mode)
+# February 11, 2026 - Azure Updates Summary Report (Standard Mode)
 
 **Generated on**: February 11, 2026
 **Target period**: Within the last 24 hours
-**Processing mode**: Details Mode
-**Number of updates**: 2 items
+**Processing mode**: Standard Mode
+**Number of updates**: 1 items
 
 ## Update List
 
-### 1. Public Preview: Azure Front Door Premium now supports Azure Private Link origins in UAE North
+### 1. [In preview] Public Preview: Azure SQL updates for mid-February 2026
 
-**Published**: February 10, 2026 21:15:47 UTC
-**Link**: [Public Preview: Azure Front Door Premium now supports Azure Private Link origins in UAE North](https://azure.microsoft.com/updates?id=556282)
+**Published**: February 11, 2026 23:15:55 UTC
+**Link**: [[In preview] Public Preview: Azure SQL updates for mid-February 2026](https://azure.microsoft.com/updates?id=550159)
 
-**Update ID**: 556282
-**Data source**: Azure Updates API
+**Categories**: In preview, Databases, Hybrid + multicloud, Azure SQL Database, Features
 
-**Categories**: In preview, Networking, Security, Azure Front Door, Azure Private Link, Features, Regions & Datacenters
+**Summary**:
 
-**Summary**: Generation failed
+- What was updated  
+Azure SQL received several enhancements in public preview as of mid-February 2026, focusing on improved deployment and migration workflows within developer tools.
 
-**Details**:
+- Key changes or new features  
+  - A new SQL Projects Publish dialog in Visual Studio Code streamlines SQL deployment processes, making it easier for developers to publish database changes directly from VS Code.
+  - The new Connections Migration dialog enables users to import existing workflow configurations and connection settings, facilitating smoother transitions and reducing manual setup during migrations.
 
-You can now set UAE North as a region for Azure Private Link-enabled origins in your Azure Front Door Premium profile. Azure Private Link-enabled origins in Azure Front Door allow you to deliver content to your end-users through public Azure Front Door en
+- Target audience affected  
+These updates primarily impact developers and database administrators (DBAs) who use Visual Studio Code for SQL development and deployment, as well as IT professionals managing Azure SQL migrations and workflow configurations.
 
----
-
-### 2. Generally Available:  Azure Databricks Supervisor Agent
-
-**Published**: February 10, 2026 18:00:43 UTC
-**Link**: [Generally Available:  Azure Databricks Supervisor Agent](https://azure.microsoft.com/updates?id=557081)
-
-**Update ID**: 557081
-**Data source**: Azure Updates API
-
-**Categories**: Launched, AI + machine learning, Analytics, Azure Databricks, Features
-
-**Summary**: Generation failed
+- Important notes if any  
+These features are currently in public preview and may be subject to changes before general availability. Early adopters are encouraged to test the new dialogs and provide feedback to Microsoft. Integration with Visual Studio Code enhances developer productivity and reduces friction in SQL deployment and migration scenarios. For more details and to access the preview, refer to the official Azure update link.
 
 **Details**:
 
-Introducing Supervisor Agent, now Generally Available in Azure Databricks. Supervisor Agent is part of the Azure Databricks Agent Bricks Platform. Supervisor Agent brings a breakthrough in agentic intelligence—using a dynamic supervisor pattern that under
+In mid-February 2026, the following updates and enhancements were made to Azure SQL:Simplify SQL deployments from Visual Studio Code using the new SQL Projects Publish dialog.Connections Migration dialog enables you to import your existing workflows and c
 
 ---
 
 
-*This report was automatically generated - 2026-02-11 03:01:09 UTC*
+*This report was automatically generated - 2026-02-15 16:35:11 UTC*

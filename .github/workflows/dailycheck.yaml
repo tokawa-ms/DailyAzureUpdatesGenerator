@@ -24,13 +24,18 @@ jobs:
       - name: Run Main Script
         env:
           AOAI_ENDPOINT: ${{ secrets.AOAI_ENDPOINT }}
-          AOAI_KEY: ${{ secrets.AOAI_KEY }}
+          # AOAI_KEY: ${{ secrets.AOAI_KEY }}
           DEPLOYMENT: ${{ secrets.DEPLOYMENT }}
           API_VER: ${{ secrets.API_VER }}
           CHECK_HOURS: ${{ secrets.CHECK_HOURS }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
-          python getlatestupdate.py --details
-          python getlatestupdate_en.py --details
+          # python getlatestupdate.py --details
+          # python getlatestupdate_en.py --details
+          python getlatestupdate_mid.py --details
+          python getlatestupdate_en_mid.py --details
           python generate_readme.py updates
           python generate_readme_en.py updates_en
 

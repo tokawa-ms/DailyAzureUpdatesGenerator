@@ -245,3 +245,7 @@ secrets.json
 # デバッグ用ファイル
 debug.log
 error.log
+updates_debug
+
+# プライベートの環境設定用スクリプト
+get_sp.ps1
