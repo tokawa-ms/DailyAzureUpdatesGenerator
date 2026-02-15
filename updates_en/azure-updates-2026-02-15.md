@@ -9,5 +9,4 @@
 
 No updates found for today.
 
-
-*This report was automatically generated - 2026-02-15 16:59:12 UTC*
+_This report was automatically generated - 2026-02-15 16:59:12 UTC_
