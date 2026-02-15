@@ -29,15 +29,22 @@ Azure Updates の自動要約が [updates](./updates) ディレクトリに保�
 - 詳細なログ出力とモニタリング
 - **テストモード**: フィード取得のテスト機能
 
-## 必要な環境変数
+## 必要な環境変数（DefaultAzureCredential 認証版）
 
 アプリケーションを実行する前に、以下の環境変数を設定してください：
 
 - `AOAI_ENDPOINT`: Azure OpenAI エンドポイント URL
-- `AOAI_KEY`: Azure OpenAI API キー
 - `DEPLOYMENT`: Azure OpenAI デプロイメント名
-- `API_VER`: Azure OpenAI API バージョン（デフォルト: 2024-02-15-preview）
+- `API_VER`: Azure OpenAI API バージョン（デフォルト: 2025-01-01-preview）
 - `CHECK_HOURS`: チェック対象時間（時間単位、デフォルト: 24）
+- `AZURE_TENANT_ID`: Azure AD テナント ID（オプション）
+- `AZURE_CLIENT_ID`: クライアント ID（オプション）
+- `AZURE_CLIENT_SECRET`: クライアントシークレット（サービスプリンシパル認証時に使用）
+
+認証方式は `DefaultAzureCredential` で自動判定されます。
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: サービスプリンシパル認証
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID`（+ マネージド ID 有効環境）: マネージド ID 認証
+- ローカル開発: `az login` 済みの Azure CLI 認証
 
 ## インストール
 
@@ -56,7 +63,7 @@ test_feed.bat
 または
 
 ```cmd
-python getlatestupdate.py --test-feed --verbose
+python getlatestupdate_mid.py --test-feed --verbose
 ```
 
 ## 使用方法
@@ -65,7 +72,7 @@ python getlatestupdate.py --test-feed --verbose
 
 ```cmd
 # RSS フィードのテスト取得
-python getlatestupdate.py --test-feed --verbose
+python getlatestupdate_mid.py --test-feed --verbose
 
 # バッチファイルでのテスト実行
 test_feed.bat
@@ -74,29 +81,29 @@ test_feed.bat
 ### 基本的な使用方法
 
 ```cmd
-python getlatestupdate.py
+python getlatestupdate_mid.py
 ```
 
 ### オプション付きの実行
 
 ```cmd
 # 過去12時間の更新をチェック
-python getlatestupdate.py --hours 12
+python getlatestupdate_mid.py --hours 12
 
 # 詳細モード（Azure Updates APIから詳細情報を取得）
-python getlatestupdate.py --details
+python getlatestupdate_mid.py --details
 
 # 出力ディレクトリを指定
-python getlatestupdate.py --output-dir reports
+python getlatestupdate_mid.py --output-dir reports
 
 # 詳細ログを出力
-python getlatestupdate.py --verbose
+python getlatestupdate_mid.py --verbose
 
 # RSSフィードのテストのみ実行
-python getlatestupdate.py --test-feed
+python getlatestupdate_mid.py --test-feed
 
 # 複数のオプションを組み合わせ（詳細モード + 詳細ログ + 72時間）
-python getlatestupdate.py --details --verbose --hours 72
+python getlatestupdate_mid.py --details --verbose --hours 72
 ```
 
 ### 詳細モードの使用方法
@@ -105,7 +112,7 @@ python getlatestupdate.py --details --verbose --hours 72
 
 ```cmd
 # 詳細モードで実行
-python getlatestupdate.py --details
+python getlatestupdate_mid.py --details
 
 # 詳細モードを含む実行例バッチファイル
 run_details_example.bat
@@ -122,10 +129,12 @@ run_details_example.bat
 
 ```cmd
 set AOAI_ENDPOINT=https://your-openai-resource.openai.azure.com
-set AOAI_KEY=your-api-key-here
 set DEPLOYMENT=gpt-4-mini
-set API_VER=2024-02-15-preview
+set API_VER=2025-01-01-preview
 set CHECK_HOURS=24
+set AZURE_TENANT_ID=your-tenant-id
+set AZURE_CLIENT_ID=your-client-id
+set AZURE_CLIENT_SECRET=your-client-secret
 ```
 
 ## トラブルシューティング
@@ -135,7 +144,7 @@ set CHECK_HOURS=24
 1. **テストモードで確認**:
 
    ```cmd
-   python getlatestupdate.py --test-feed --verbose
+   python getlatestupdate_mid.py --test-feed --verbose
    ```
 
 2. **ログファイルを確認**: `azure_updates.log`
