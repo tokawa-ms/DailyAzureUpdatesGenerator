@@ -238,7 +238,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 #### 5.1.3 Azure OpenAI API
 - **エンドポイント**: `{AOAI_ENDPOINT}/openai/deployments/{DEPLOYMENT}/chat/completions`
 - **メソッド**: POST
-- **認証**: API Key (ヘッダー)
+- **認証**: Azure AD トークン（DefaultAzureCredential）
 - **API バージョン**: 設定可能（デフォルト: 2025-01-01-preview）
 - **レート制限**: Azure OpenAI の制限に従う
 
@@ -250,10 +250,17 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 | 環境変数 | 必須 | デフォルト | 説明 |
 |---------|------|-----------|------|
 | AOAI_ENDPOINT | ○ | - | Azure OpenAI エンドポイント |
-| AOAI_KEY | ○ | - | Azure OpenAI API キー |
 | DEPLOYMENT | ○ | - | Azure OpenAI デプロイメント名 |
 | API_VER | - | 2025-01-01-preview | Azure OpenAI API バージョン |
 | CHECK_HOURS | - | 24 | チェック対象時間 |
+| AZURE_TENANT_ID | - | - | Azure AD テナント ID（サービスプリンシパル/マネージド ID 用） |
+| AZURE_CLIENT_ID | - | - | クライアント ID（サービスプリンシパル/マネージド ID 用） |
+| AZURE_CLIENT_SECRET | - | - | クライアントシークレット（サービスプリンシパル認証時のみ） |
+
+認証方式:
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: サービスプリンシパル認証
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID`: マネージド ID 認証
+- ローカル開発: Azure CLI (`az login`) の認証情報を利用
 
 ## 6. エラーハンドリング設計
 
@@ -299,9 +306,9 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 7. セキュリティ設計
 
 ### 7.1 認証情報管理
-- **環境変数**: API キーは環境変数から取得
-- **GitHub Secrets**: CI/CDでの機密情報管理
-- **ログ**: API キーのログ出力防止
+- **DefaultAzureCredential**: Azure Identity により認証方式を自動選択
+- **GitHub Secrets**: `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` を管理
+- **ログ**: 認証トークン・シークレットのログ出力防止
 
 ### 7.2 通信セキュリティ
 - **HTTPS**: 全ての外部通信でHTTPS使用

@@ -29,15 +29,22 @@ This application reads Azure Updates RSS feeds, summarizes Azure Update informat
 - Detailed logging and monitoring
 - **Test mode**: Feed retrieval testing functionality
 
-## Required Environment Variables
+## Required Environment Variables (DefaultAzureCredential Authentication)
 
 Before running the application, set the following environment variables:
 
 - `AOAI_ENDPOINT`: Azure OpenAI endpoint URL
-- `AOAI_KEY`: Azure OpenAI API key
 - `DEPLOYMENT`: Azure OpenAI deployment name
-- `API_VER`: Azure OpenAI API version (default: 2024-02-15-preview)
+- `API_VER`: Azure OpenAI API version (default: 2025-01-01-preview)
 - `CHECK_HOURS`: Target check time (in hours, default: 24)
+- `AZURE_TENANT_ID`: Azure AD tenant ID (optional)
+- `AZURE_CLIENT_ID`: Client ID (optional)
+- `AZURE_CLIENT_SECRET`: Client secret (used for service principal authentication)
+
+Authentication is auto-detected by `DefaultAzureCredential`.
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: service principal authentication
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` (+ managed identity-enabled environment): managed identity authentication
+- Local development: Azure CLI authentication after `az login`
 
 ## Installation
 
@@ -56,7 +63,7 @@ test_feed.bat
 or
 
 ```cmd
-python getlatestupdate.py --test-feed --verbose
+python getlatestupdate_en_mid.py --test-feed --verbose
 ```
 
 ## Usage
@@ -65,7 +72,7 @@ python getlatestupdate.py --test-feed --verbose
 
 ```cmd
 # Test RSS feed retrieval
-python getlatestupdate.py --test-feed --verbose
+python getlatestupdate_en_mid.py --test-feed --verbose
 
 # Test execution with batch file
 test_feed.bat
@@ -74,29 +81,29 @@ test_feed.bat
 ### Basic Usage
 
 ```cmd
-python getlatestupdate.py
+python getlatestupdate_en_mid.py
 ```
 
 ### Execution with Options
 
 ```cmd
 # Check updates from the past 12 hours
-python getlatestupdate_en.py --hours 12
+python getlatestupdate_en_mid.py --hours 12
 
 # Details mode (retrieve detailed information from Azure Updates API)
-python getlatestupdate_en.py --details
+python getlatestupdate_en_mid.py --details
 
 # Specify output directory
-python getlatestupdate_en.py --output-dir reports
+python getlatestupdate_en_mid.py --output-dir reports
 
 # Output detailed logs
-python getlatestupdate_en.py --verbose
+python getlatestupdate_en_mid.py --verbose
 
 # Run RSS feed test only
-python getlatestupdate_en.py --test-feed
+python getlatestupdate_en_mid.py --test-feed
 
 # Combine multiple options (details mode + detailed logs + 72 hours)
-python getlatestupdate_en.py --details --verbose --hours 72
+python getlatestupdate_en_mid.py --details --verbose --hours 72
 ```
 
 ### Using Details Mode
@@ -105,7 +112,7 @@ Details mode (`--details`) retrieves detailed information from the Azure Updates
 
 ```cmd
 # Run in details mode
-python getlatestupdate_en.py --details
+python getlatestupdate_en_mid.py --details
 
 # Batch file example with details mode
 run_details_example.bat
@@ -122,10 +129,12 @@ run_details_example.bat
 
 ```cmd
 set AOAI_ENDPOINT=https://your-openai-resource.openai.azure.com
-set AOAI_KEY=your-api-key-here
 set DEPLOYMENT=gpt-4-mini
-set API_VER=2024-02-15-preview
+set API_VER=2025-01-01-preview
 set CHECK_HOURS=24
+set AZURE_TENANT_ID=your-tenant-id
+set AZURE_CLIENT_ID=your-client-id
+set AZURE_CLIENT_SECRET=your-client-secret
 ```
 
 ## Troubleshooting
@@ -135,7 +144,7 @@ set CHECK_HOURS=24
 1. **Check with test mode**:
 
    ```cmd
-   python getlatestupdate_en.py --test-feed --verbose
+   python getlatestupdate_en_mid.py --test-feed --verbose
    ```
 
 2. **Check log file**: `azure_updates.log`
