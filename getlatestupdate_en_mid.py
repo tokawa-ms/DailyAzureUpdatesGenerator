@@ -1366,13 +1366,13 @@ def load_config() -> Dict[str, str]:
         )
     )
 
-    if tenant_id and client_id and client_secret:
-        logger.info(
-            "Configuration loaded (service principal authentication will be used)"
-        )
-    elif tenant_id and client_id and has_workload_identity_context:
+    if tenant_id and client_id and has_workload_identity_context:
         logger.info(
             "Configuration loaded (OIDC/Workload Identity authentication will be used)"
+        )
+    elif tenant_id and client_id and client_secret:
+        logger.info(
+            "Configuration loaded (service principal authentication will be used)"
         )
     elif tenant_id and client_id:
         logger.info("Configuration loaded (managed ID authentication will be used)")
@@ -1499,6 +1499,19 @@ def main():
         # Override time with command line argument
         if args.hours:
             config["check_hours"] = args.hours
+
+        has_workload_identity_context = bool(
+            os.getenv("AZURE_FEDERATED_TOKEN_FILE")
+            or (
+                os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+                and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+            )
+        )
+        if has_workload_identity_context and os.getenv("AZURE_CLIENT_SECRET"):
+            logger.warning(
+                "OIDC/Workload Identity context detected; ignoring AZURE_CLIENT_SECRET"
+            )
+            os.environ.pop("AZURE_CLIENT_SECRET", None)
 
         # Create DefaultAzureCredential
         # Authentication method is automatically selected based on environment variables:

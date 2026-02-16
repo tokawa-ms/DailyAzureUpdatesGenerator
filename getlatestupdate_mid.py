@@ -1336,10 +1336,10 @@ def load_config() -> Dict[str, str]:
         )
     )
 
-    if tenant_id and client_id and client_secret:
-        logger.info("設定を読み込みました（サービスプリンシパル認証が使用されます）")
-    elif tenant_id and client_id and has_workload_identity_context:
+    if tenant_id and client_id and has_workload_identity_context:
         logger.info("設定を読み込みました（OIDC/Workload Identity 認証が使用されます）")
+    elif tenant_id and client_id and client_secret:
+        logger.info("設定を読み込みました（サービスプリンシパル認証が使用されます）")
     elif tenant_id and client_id:
         logger.info("設定を読み込みました（マネージド ID 認証が使用されます）")
     else:
@@ -1463,6 +1463,19 @@ def main():
         # コマンドライン引数で時間を上書き
         if args.hours:
             config["check_hours"] = args.hours
+
+        has_workload_identity_context = bool(
+            os.getenv("AZURE_FEDERATED_TOKEN_FILE")
+            or (
+                os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+                and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+            )
+        )
+        if has_workload_identity_context and os.getenv("AZURE_CLIENT_SECRET"):
+            logger.warning(
+                "OIDC/Workload Identity コンテキストを検出したため、AZURE_CLIENT_SECRET を無視します"
+            )
+            os.environ.pop("AZURE_CLIENT_SECRET", None)
 
         # DefaultAzureCredential を作成
         # 環境変数に応じて自動的に認証方式が選択される:
