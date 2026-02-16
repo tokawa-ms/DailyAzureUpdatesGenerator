@@ -4,11 +4,50 @@ on:
   repository_dispatch:
     types: [daily-update]
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve OIDC/auth settings
+        shell: bash
+        env:
+          AZURE_CLIENT_ID_SECRET: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID_SECRET: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID_SECRET: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AOAI_ENDPOINT_SECRET: ${{ secrets.AOAI_ENDPOINT }}
+          DEPLOYMENT_SECRET: ${{ secrets.DEPLOYMENT }}
+          API_VER_SECRET: ${{ secrets.API_VER }}
+          CHECK_HOURS_SECRET: ${{ secrets.CHECK_HOURS }}
+        run: |
+          if [ -n "${AZURE_CLIENT_ID_SECRET}" ] && [ -n "${AZURE_TENANT_ID_SECRET}" ] && [ -n "${AZURE_SUBSCRIPTION_ID_SECRET}" ]; then
+            echo "USE_OIDC_FLOW=true" >> "$GITHUB_ENV"
+            echo "AZURE_CLIENT_ID=${AZURE_CLIENT_ID_SECRET}" >> "$GITHUB_ENV"
+            echo "AZURE_TENANT_ID=${AZURE_TENANT_ID_SECRET}" >> "$GITHUB_ENV"
+            echo "AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID_SECRET}" >> "$GITHUB_ENV"
+
+            [ -n "${AOAI_ENDPOINT_SECRET}" ] && echo "AOAI_ENDPOINT=${AOAI_ENDPOINT_SECRET}" >> "$GITHUB_ENV"
+
+            [ -n "${DEPLOYMENT_SECRET}" ] && echo "DEPLOYMENT=${DEPLOYMENT_SECRET}" >> "$GITHUB_ENV"
+            [ -n "${API_VER_SECRET}" ] && echo "API_VER=${API_VER_SECRET}" >> "$GITHUB_ENV"
+            [ -n "${CHECK_HOURS_SECRET}" ] && echo "CHECK_HOURS=${CHECK_HOURS_SECRET}" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "USE_OIDC_FLOW=false" >> "$GITHUB_ENV"
+
+      - name: Azure Login (OIDC / Federated Identity)
+        if: env.USE_OIDC_FLOW == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup python
         uses: actions/setup-python@v5
@@ -23,14 +62,17 @@ jobs:
 
       - name: Run Main Script
         env:
-          AOAI_ENDPOINT: ${{ secrets.AOAI_ENDPOINT }}
+          AOAI_ENDPOINT: ${{ env.AOAI_ENDPOINT || secrets.AOAI_ENDPOINT }}
           # AOAI_KEY: ${{ secrets.AOAI_KEY }}
-          DEPLOYMENT: ${{ secrets.DEPLOYMENT }}
-          API_VER: ${{ secrets.API_VER }}
-          CHECK_HOURS: ${{ secrets.CHECK_HOURS }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          DEPLOYMENT: ${{ env.DEPLOYMENT || secrets.DEPLOYMENT }}
+          API_VER: ${{ env.API_VER || secrets.API_VER }}
+          CHECK_HOURS: ${{ env.CHECK_HOURS || secrets.CHECK_HOURS }}
+          AZURE_TENANT_ID: ${{ env.AZURE_TENANT_ID || secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ env.AZURE_CLIENT_ID || secrets.AZURE_CLIENT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID || secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
         run: |
           # python getlatestupdate.py --details
           # python getlatestupdate_en.py --details

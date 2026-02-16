@@ -42,7 +42,9 @@ Before running the application, set the following environment variables:
 - `AZURE_CLIENT_SECRET`: Client secret (used for service principal authentication)
 
 Authentication is auto-detected by `DefaultAzureCredential`.
+
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: service principal authentication
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` (+ OIDC context available): OIDC / Workload Identity authentication
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` (+ managed identity-enabled environment): managed identity authentication
 - Local development: Azure CLI authentication after `az login`
 

@@ -42,7 +42,9 @@ Azure Updates の自動要約が [updates](./updates) ディレクトリに保�
 - `AZURE_CLIENT_SECRET`: クライアントシークレット（サービスプリンシパル認証時に使用）
 
 認証方式は `DefaultAzureCredential` で自動判定されます。
+
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: サービスプリンシパル認証
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID`（+ OIDC コンテキストが有効）: OIDC / Workload Identity 認証
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID`（+ マネージド ID 有効環境）: マネージド ID 認証
 - ローカル開発: `az login` 済みの Azure CLI 認証
 

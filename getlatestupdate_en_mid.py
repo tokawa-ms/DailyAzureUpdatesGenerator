@@ -6,6 +6,7 @@ Application to read Azure Updates RSS feed and summarize updates within a specif
 Authentication methods:
 - Local environment: Azure CLI credentials (must be logged in with az login)
 - Cloud environment (AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET set): Service principal authentication
+- OIDC environment (AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC context): Workload Identity authentication
 - Cloud environment (AZURE_TENANT_ID + AZURE_CLIENT_ID only set): Managed ID authentication
 
 Environment Variables:
@@ -1324,6 +1325,7 @@ def load_config() -> Dict[str, str]:
 
     Authentication method is automatically selected based on environment variable settings:
     - AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET: Service principal authentication
+    - AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC context: OIDC/Workload Identity authentication
     - AZURE_TENANT_ID + AZURE_CLIENT_ID only: Managed ID authentication
     - None of the above: Azure CLI credentials (for local development)
 
@@ -1356,10 +1358,21 @@ def load_config() -> Dict[str, str]:
     tenant_id = os.getenv("AZURE_TENANT_ID")
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
+    has_workload_identity_context = bool(
+        os.getenv("AZURE_FEDERATED_TOKEN_FILE")
+        or (
+            os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+            and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+        )
+    )
 
     if tenant_id and client_id and client_secret:
         logger.info(
             "Configuration loaded (service principal authentication will be used)"
+        )
+    elif tenant_id and client_id and has_workload_identity_context:
+        logger.info(
+            "Configuration loaded (OIDC/Workload Identity authentication will be used)"
         )
     elif tenant_id and client_id:
         logger.info("Configuration loaded (managed ID authentication will be used)")
@@ -1490,6 +1503,8 @@ def main():
         # Create DefaultAzureCredential
         # Authentication method is automatically selected based on environment variables:
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET -> Service principal authentication
+        #   - AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC context
+        #       (ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN or AZURE_FEDERATED_TOKEN_FILE) -> OIDC/Workload Identity authentication
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID only -> Managed ID authentication
         #   - Not set -> Azure CLI credentials (for local development)
         credential = DefaultAzureCredential()

@@ -6,6 +6,7 @@ Azure Updates RSS フィードを読み込み、指定時間内の更新を Azur
 認証方式:
 - ローカル環境: Azure CLI クレデンシャル（az login 済みであること）
 - クラウド環境（AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET 設定時）: サービスプリンシパル認証
+- OIDC 環境（AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC コンテキスト）: Workload Identity 認証
 - クラウド環境（AZURE_TENANT_ID + AZURE_CLIENT_ID のみ設定時）: マネージド ID 認証
 
 環境変数:
@@ -1296,6 +1297,7 @@ def load_config() -> Dict[str, str]:
 
     認証方式は環境変数の設定状況に応じて自動選択されます:
     - AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET: サービスプリンシパル認証
+    - AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC コンテキスト: OIDC/Workload Identity 認証
     - AZURE_TENANT_ID + AZURE_CLIENT_ID のみ: マネージド ID 認証
     - 上記いずれも未設定: Azure CLI クレデンシャル（ローカル開発用）
 
@@ -1326,9 +1328,18 @@ def load_config() -> Dict[str, str]:
     tenant_id = os.getenv("AZURE_TENANT_ID")
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
+    has_workload_identity_context = bool(
+        os.getenv("AZURE_FEDERATED_TOKEN_FILE")
+        or (
+            os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+            and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+        )
+    )
 
     if tenant_id and client_id and client_secret:
         logger.info("設定を読み込みました（サービスプリンシパル認証が使用されます）")
+    elif tenant_id and client_id and has_workload_identity_context:
+        logger.info("設定を読み込みました（OIDC/Workload Identity 認証が使用されます）")
     elif tenant_id and client_id:
         logger.info("設定を読み込みました（マネージド ID 認証が使用されます）")
     else:
@@ -1456,6 +1467,8 @@ def main():
         # DefaultAzureCredential を作成
         # 環境変数に応じて自動的に認証方式が選択される:
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET → サービスプリンシパル認証
+        #   - AZURE_TENANT_ID + AZURE_CLIENT_ID + OIDC コンテキスト
+        #       (ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN または AZURE_FEDERATED_TOKEN_FILE) → OIDC/Workload Identity 認証
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID のみ → マネージド ID 認証
         #   - 未設定 → Azure CLI クレデンシャル（ローカル開発用）
         credential = DefaultAzureCredential()
