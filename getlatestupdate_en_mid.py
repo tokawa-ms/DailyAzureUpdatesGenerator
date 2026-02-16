@@ -61,6 +61,7 @@ def is_truthy_env(var_name: str) -> bool:
     return os.getenv(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+# Keep Azure SDK logs quiet by default; enable only when troubleshooting.
 if not is_truthy_env("ENABLE_AZURE_SDK_LOG"):
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("azure.identity").setLevel(logging.WARNING)
@@ -1057,6 +1058,7 @@ class AzureUpdatesProcessor:
         Returns:
             Dictionary of date -> file path
         """
+        # Determine the full date window first, then regenerate one report per day.
         # Determine end date
         today_date = datetime.now(timezone.utc).date()
         if end_date:
@@ -1589,6 +1591,7 @@ def main():
                 sys.exit(1)
 
         if args.backfill_days or backfill_start:
+            # In backfill mode, regenerate daily files for the specified range.
             if backfill_start and backfill_end:
                 logger.info(
                     f"Backfill mode: Regenerating {args.backfill_startdate} - {args.backfill_enddate}"
@@ -1622,7 +1625,7 @@ def main():
             logger.info("Backfill processing completed successfully")
         else:
             # Normal mode
-            # Process updates
+            # Normal mode processes only updates within CHECK_HOURS.
             logger.info("Starting Azure Updates processing")
             updates = processor.process_updates()
 

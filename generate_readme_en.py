@@ -29,6 +29,7 @@ def find_azure_update_files(directory: str) -> List[Tuple[str, datetime]]:
         print(f"Error: Directory '{directory}' does not exist.")
         return []
 
+    # Target only date-based daily report files produced by this project.
     pattern = re.compile(r"^azure-updates-(\d{4}-\d{2}-\d{2})\.md$")
     files_with_dates = []
 
@@ -65,7 +66,7 @@ def generate_readme_content(
     Returns:
         str: README.md content
     """
-    # Sort by date in descending order (newest first)
+    # Keep the newest report at the top for quick browsing.
     sorted_files = sorted(files_with_dates, key=lambda x: x[1], reverse=True)
 
     current_time = datetime.now().strftime("%B %d, %Y %H:%M:%S")
@@ -135,7 +136,7 @@ def main():
     if args.verbose:
         print(f"Target directory: {target_directory}")
 
-    # Search for Azure Updates files
+    # Discover daily report files in the specified output directory.
     files_with_dates = find_azure_update_files(target_directory)
 
     if args.verbose:
@@ -143,7 +144,7 @@ def main():
         for filename, date_obj in files_with_dates:
             print(f"  - {filename} ({date_obj.strftime('%Y-%m-%d')})")
 
-    # Generate README.md content
+    # Build the index-style README content.
     directory_name = os.path.basename(target_directory)
     readme_content = generate_readme_content(files_with_dates, directory_name)
 

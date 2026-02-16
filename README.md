@@ -7,7 +7,7 @@ English Version is [here](./README_EN.md)
 ## 概要
 
 Azure Updates の自動要約が [updates](./updates) ディレクトリに保存されています。
-自動要約機能は、GitHub Actions によって毎日日本時間の正午に実行され、直近一日の Azure Updates の情報を収集したうえ、日本語の要約を生成します。
+自動要約機能は、GitHub Actions の `repository_dispatch`（`daily-update`）で起動され、直近の Azure Updates 情報を収集して日本語要約を生成します。
 
 ## 免責事項
 
@@ -16,12 +16,13 @@ Azure Updates の自動要約が [updates](./updates) ディレクトリに保�
 
 # Azure Updates RSS フィード処理アプリケーション
 
-このアプリケーションは、Azure Updates の RSS フィードを読み込み、指定した時間以内に更新があった Azure の Update 情報を Azure OpenAI の GPT-4.1-mini モデルで日本語に要約し、マークダウン形式でファイルに出力します。
+このアプリケーションは、Azure Updates の RSS フィードを読み込み、指定した時間以内に更新があった Azure の Update 情報を Azure OpenAI（Chat Completions）で日本語に要約し、マークダウン形式でファイルに出力します。
 
 ## 機能
 
 - **堅牢な RSS フィード取得**: 複数の URL を試行して確実にフィードを取得
 - **詳細モード**: Azure Updates API から詳細情報を取得（`--details` オプション）
+- **バックフィルモード**: 期間指定で日次レポートを再生成（`--backfill-*` オプション）
 - 指定時間内の新しい更新のフィルタリング
 - Azure OpenAI を使用した日本語要約生成
 - マークダウン形式での詳細レポート出力
@@ -107,6 +108,15 @@ python getlatestupdate_mid.py --test-feed
 
 # 複数のオプションを組み合わせ（詳細モード + 詳細ログ + 72時間）
 python getlatestupdate_mid.py --details --verbose --hours 72
+
+# 過去7日分を再生成（既存ファイルはスキップ）
+python getlatestupdate_mid.py --details --backfill-days 7
+
+# 期間指定で再生成（開始日〜終了日）
+python getlatestupdate_mid.py --details --backfill-startdate 2026-02-01 --backfill-enddate 2026-02-07
+
+# 既存ファイルを強制上書き
+python getlatestupdate_mid.py --details --backfill-days 3 --force
 ```
 
 ### 詳細モードの使用方法

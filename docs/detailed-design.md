@@ -9,8 +9,9 @@ Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に�
 ### 1.2 主要機能
 
 - Azure Updates RSSフィードの自動取得
-- Azure OpenAI GPT-4を使用した日本語要約生成
+- Azure OpenAI（Chat Completions）を使用した日本語要約生成
 - 標準モードと詳細モード（API詳細情報取得）の対応
+- バックフィルモード（期間指定の日次再生成）
 - マークダウン形式でのレポート生成
 - GitHub Actionsによる自動実行
 - 日本語版と英語版の両対応
@@ -19,7 +20,7 @@ Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に�
 
 - **言語**: Python 3.13
 - **主要ライブラリ**: feedparser, requests, urllib3
-- **AI サービス**: Azure OpenAI (GPT-4)
+- **AI サービス**: Azure OpenAI (Chat Completions)
 - **CI/CD**: GitHub Actions
 - **出力形式**: Markdown
 - **バージョン管理**: Git
@@ -38,8 +39,8 @@ Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に�
 ┌─────────────────────────────────────────────────────────────────┐
 │                  メインアプリケーション                            │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────┐ │
-│  │ getlatestupdate │  │getlatestupdate  │  │ generate_readme  │ │
-│  │      .py        │  │    _en.py       │  │     .py/.py_en   │ │
+│  │getlatestupdate  │  │getlatestupdate  │  │ generate_readme  │ │
+│  │    _mid.py      │  │  _en_mid.py     │  │     .py/.py_en   │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
                           │
@@ -154,13 +155,13 @@ Azure OpenAI API とのインターフェースを管理するクライアント
   - api_details (Optional[Dict]): API詳細情報
 - **戻り値**: Optional[str]
 - **特徴**:
-  - 200文字程度の簡潔な要約
+  - 500文字程度の簡潔な要約
   - 技術者向けの重要ポイント抽出
   - API情報とRSS情報の自動切り替え
 
 **generate_detailed_summary(title, content, link)**
 
-- **目的**: 詳細モード用の500文字以内詳細要約生成
+- **目的**: 詳細モード用の1000文字程度の詳細要約生成
 - **戻り値**: Optional[str]
 - **特徴**:
   - 技術的詳細の説明
@@ -169,12 +170,12 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 
 #### 3.2.3 API設定
 
-| 設定項目    | 設定値  | 説明                            |
-| ----------- | ------- | ------------------------------- |
-| max_tokens  | 500/800 | 最大トークン数（要約/詳細要約） |
-| temperature | 0.3     | 生成の確定性制御                |
-| top_p       | 0.95    | 語彙選択の多様性制御            |
-| timeout     | 30秒    | リクエストタイムアウト          |
+| 設定項目    | 設定値    | 説明                            |
+| ----------- | --------- | ------------------------------- |
+| max_tokens  | 2000/4000 | 最大トークン数（要約/詳細要約） |
+| temperature | 0.3       | 生成の確定性制御                |
+| top_p       | 0.95      | 語彙選択の多様性制御            |
+| timeout     | 30秒      | リクエストタイムアウト          |
 
 ## 4. データフロー設計
 
@@ -198,8 +199,8 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 
 4. レポート生成
    └─> マークダウン形式変換
-       └─> ファイル出力（updates/）
-           └─> README.md 更新
+     └─> ファイル出力（updates/）
+       └─> （別スクリプトで README インデックス更新）
 ```
 
 ### 4.2 詳細モード データフロー
@@ -222,7 +223,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 5. レポート生成（拡張）
    └─> 詳細情報含むマークダウン生成
        └─> API情報表示
-           └─> ファイル出力
+       └─> ファイル出力（必要に応じて backfill 再生成）
 ```
 
 ## 5. API 設計
@@ -411,9 +412,9 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 2. **メイン処理実行**
 
 - 必要に応じて `azure/login@v2` で OIDC フェデレーションログイン
-- 日本語版実行（詳細モード）
-- 英語版実行（詳細モード）
-- README.md 生成
+- 日本語版 `getlatestupdate_mid.py --details` 実行
+- 英語版 `getlatestupdate_en_mid.py --details` 実行
+- `updates/` と `updates_en/` の README インデックス生成
 
 3. **結果コミット**
    - Git 設定
@@ -479,7 +480,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 
 ### 13.2 データ品質
 
-- **要約品質**: GPT-4による高品質要約
+- **要約品質**: Azure OpenAIによる高品質要約
 - **正確性**: 元記事へのリンク提供
 - **完全性**: 全フィールドの適切な処理
 - **一貫性**: テンプレート化されたレポート形式
@@ -518,4 +519,4 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ---
 
 _この詳細設計書は Daily Azure Updates Generator の技術仕様を定義します。_
-_最終更新: 2025年07月22日_
+_最終更新: 2026年02月16日_
