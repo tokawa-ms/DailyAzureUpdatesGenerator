@@ -61,6 +61,7 @@ def is_truthy_env(var_name: str) -> bool:
     return os.getenv(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+# 既定では Azure SDK の詳細ログを抑制し、必要時のみ環境変数で有効化する
 if not is_truthy_env("ENABLE_AZURE_SDK_LOG"):
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("azure.identity").setLevel(logging.WARNING)
@@ -1039,6 +1040,7 @@ class AzureUpdatesProcessor:
         Returns:
             日付 -> ファイルパスの辞書
         """
+        # バックフィル対象期間を先に確定し、その期間の全日付を順に再生成する
         # 終了日を決定
         today_date = datetime.now(timezone.utc).date()
         if end_date:
@@ -1559,6 +1561,7 @@ def main():
                 sys.exit(1)
 
         if args.backfill_days or backfill_start:
+            # backfill モードでは指定期間のレポートを日付単位で再作成
             if backfill_start and backfill_end:
                 logger.info(
                     f"バックフィルモード: {args.backfill_startdate} 〜 {args.backfill_enddate} を再生成します"
@@ -1592,7 +1595,7 @@ def main():
             logger.info("バックフィル処理が正常に完了しました")
         else:
             # 通常モード
-            # 更新処理
+            # 通常モードは「直近 CHECK_HOURS 時間」の更新のみを処理
             logger.info("Azure Updates の処理を開始します")
             updates = processor.process_updates()
 

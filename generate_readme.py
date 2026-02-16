@@ -29,6 +29,7 @@ def find_azure_update_files(directory: str) -> List[Tuple[str, datetime]]:
         print(f"エラー: ディレクトリ '{directory}' が存在しません。")
         return []
 
+    # レポート生成スクリプトが出力する日次ファイルのみを対象にする
     pattern = re.compile(r"^azure-updates-(\d{4}-\d{2}-\d{2})\.md$")
     files_with_dates = []
 
@@ -67,10 +68,10 @@ def generate_readme_content(
     Returns:
         str: README.md の内容
     """
-    # 日付が新しい順にソート
+    # README は新しい日付を先頭に並べる
     sorted_files = sorted(files_with_dates, key=lambda x: x[1], reverse=True)
 
-    # 日本時間（JST）で現在時刻を取得
+    # メタ情報の「最終更新」は運用実態に合わせて JST で出力する
     try:
         # zoneinfo を使用（Python 3.9+）
         from zoneinfo import ZoneInfo
@@ -146,7 +147,7 @@ def main():
     if args.verbose:
         print(f"対象ディレクトリ: {target_directory}")
 
-    # Azure Updates ファイルを検索
+    # 指定ディレクトリ内の日次レポートを列挙
     files_with_dates = find_azure_update_files(target_directory)
 
     if args.verbose:
@@ -154,7 +155,7 @@ def main():
         for filename, date_obj in files_with_dates:
             print(f"  - {filename} ({date_obj.strftime('%Y-%m-%d')})")
 
-    # README.md の内容を生成
+    # 一覧README本文を組み立て
     directory_name = os.path.basename(target_directory)
     readme_content = generate_readme_content(files_with_dates, directory_name)
 

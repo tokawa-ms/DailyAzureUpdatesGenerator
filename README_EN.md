@@ -7,7 +7,7 @@ Japanese Version is [here](./README.md)
 ## Overview
 
 Automatic summaries of Azure Updates are stored in the [updates_en](./updates_en) directory.
-The automatic summary feature runs daily at noon Japan time via GitHub Actions, collecting Azure Updates information from the past day and generating English summaries.
+The automatic summary feature is triggered by GitHub Actions `repository_dispatch` (`daily-update`), collecting recent Azure Updates information and generating English summaries.
 
 ## Disclaimer
 
@@ -16,12 +16,13 @@ If you find content of interest, we recommend checking the original information 
 
 # Azure Updates RSS Feed Processing Application
 
-This application reads Azure Updates RSS feeds, summarizes Azure Update information that has been updated within a specified time period using Azure OpenAI's GPT-4.1-mini model in English, and outputs the results in Markdown format.
+This application reads Azure Updates RSS feeds, summarizes Azure Update information updated within a specified time period in English using Azure OpenAI (Chat Completions), and outputs reports in Markdown format.
 
 ## Features
 
 - **Robust RSS feed retrieval**: Tries multiple URLs to ensure reliable feed acquisition
 - **Details mode**: Retrieve detailed information from Azure Updates API (`--details` option)
+- **Backfill mode**: Regenerate day-based reports for a date range (`--backfill-*` options)
 - Filtering of new updates within specified time periods
 - English summary generation using Azure OpenAI
 - Detailed report output in Markdown format
@@ -107,6 +108,15 @@ python getlatestupdate_en_mid.py --test-feed
 
 # Combine multiple options (details mode + detailed logs + 72 hours)
 python getlatestupdate_en_mid.py --details --verbose --hours 72
+
+# Regenerate the past 7 days (skip existing files)
+python getlatestupdate_en_mid.py --details --backfill-days 7
+
+# Regenerate with explicit date range
+python getlatestupdate_en_mid.py --details --backfill-startdate 2026-02-01 --backfill-enddate 2026-02-07
+
+# Force overwrite existing daily files
+python getlatestupdate_en_mid.py --details --backfill-days 3 --force
 ```
 
 ### Using Details Mode
