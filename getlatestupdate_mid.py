@@ -1471,7 +1471,7 @@ def main():
                 and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
             )
         )
-        if has_workload_identity_context and os.getenv("AZURE_CLIENT_SECRET"):
+        if has_workload_identity_context and "AZURE_CLIENT_SECRET" in os.environ:
             logger.warning(
                 "OIDC/Workload Identity コンテキストを検出したため、AZURE_CLIENT_SECRET を無視します"
             )
@@ -1484,7 +1484,9 @@ def main():
         #       (ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN または AZURE_FEDERATED_TOKEN_FILE) → OIDC/Workload Identity 認証
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID のみ → マネージド ID 認証
         #   - 未設定 → Azure CLI クレデンシャル（ローカル開発用）
-        credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential(
+            exclude_environment_credential=has_workload_identity_context
+        )
 
         # Azure OpenAI クライアント初期化（DefaultAzureCredential 認証）
         openai_client = AzureOpenAIClient(

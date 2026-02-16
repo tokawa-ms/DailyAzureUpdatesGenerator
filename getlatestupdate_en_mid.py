@@ -1507,7 +1507,7 @@ def main():
                 and os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
             )
         )
-        if has_workload_identity_context and os.getenv("AZURE_CLIENT_SECRET"):
+        if has_workload_identity_context and "AZURE_CLIENT_SECRET" in os.environ:
             logger.warning(
                 "OIDC/Workload Identity context detected; ignoring AZURE_CLIENT_SECRET"
             )
@@ -1520,7 +1520,9 @@ def main():
         #       (ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN or AZURE_FEDERATED_TOKEN_FILE) -> OIDC/Workload Identity authentication
         #   - AZURE_TENANT_ID + AZURE_CLIENT_ID only -> Managed ID authentication
         #   - Not set -> Azure CLI credentials (for local development)
-        credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential(
+            exclude_environment_credential=has_workload_identity_context
+        )
 
         # Initialize Azure OpenAI client (DefaultAzureCredential authentication)
         openai_client = AzureOpenAIClient(
