@@ -3,9 +3,11 @@
 ## 1. 概要
 
 ### 1.1 システム概要
+
 Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に取得し、Azure OpenAIを使用して日本語要約を生成するPythonアプリケーションです。GitHub Actionsを使用して毎日自動実行され、マークダウン形式のレポートを生成します。
 
 ### 1.2 主要機能
+
 - Azure Updates RSSフィードの自動取得
 - Azure OpenAI GPT-4を使用した日本語要約生成
 - 標準モードと詳細モード（API詳細情報取得）の対応
@@ -14,6 +16,7 @@ Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に�
 - 日本語版と英語版の両対応
 
 ### 1.3 技術スタック
+
 - **言語**: Python 3.13
 - **主要ライブラリ**: feedparser, requests, urllib3
 - **AI サービス**: Azure OpenAI (GPT-4)
@@ -90,11 +93,13 @@ Daily Azure Updates Generatorは、Azure Updates RSSフィードを自動的に�
 ### 3.1 AzureUpdatesProcessor クラス
 
 #### 3.1.1 概要
+
 Azure Updates の RSS フィードとAPIを処理する中核クラス。
 
 #### 3.1.2 主要メソッド
 
 **fetch_rss_feed()**
+
 - **目的**: 複数のRSS URLから堅牢にフィードを取得
 - **戻り値**: feedparser.FeedParserDict | None
 - **特徴**:
@@ -104,6 +109,7 @@ Azure Updates の RSS フィードとAPIを処理する中核クラス。
   - XML妥当性チェック
 
 **filter_recent_updates(feed)**
+
 - **目的**: 指定時間内の更新をフィルタリング
 - **パラメータ**: feed (feedparser.FeedParserDict)
 - **戻り値**: List[Dict]
@@ -113,6 +119,7 @@ Azure Updates の RSS フィードとAPIを処理する中核クラス。
   - カテゴリ情報の抽出
 
 **enhance_update_with_details(update)**
+
 - **目的**: 詳細モード時にAPI情報で更新データを拡張
 - **パラメータ**: update (Dict)
 - **戻り値**: Dict
@@ -123,20 +130,22 @@ Azure Updates の RSS フィードとAPIを処理する中核クラス。
 
 #### 3.1.3 設定パラメータ
 
-| パラメータ | デフォルト値 | 説明 |
-|-----------|-------------|------|
-| check_hours | 24 | チェック対象時間（時間） |
-| details_mode | False | 詳細モード有効/無効 |
-| RSS_URLS | 複数URL | フォールバック用RSS URL配列 |
+| パラメータ   | デフォルト値 | 説明                        |
+| ------------ | ------------ | --------------------------- |
+| check_hours  | 24           | チェック対象時間（時間）    |
+| details_mode | False        | 詳細モード有効/無効         |
+| RSS_URLS     | 複数URL      | フォールバック用RSS URL配列 |
 
 ### 3.2 AzureOpenAIClient クラス
 
 #### 3.2.1 概要
+
 Azure OpenAI API とのインターフェースを管理するクライアントクラス。
 
 #### 3.2.2 主要メソッド
 
 **summarize_update(title, description, link, api_details)**
+
 - **目的**: Azure Update の日本語要約生成
 - **パラメータ**:
   - title (str): アップデートタイトル
@@ -150,6 +159,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
   - API情報とRSS情報の自動切り替え
 
 **generate_detailed_summary(title, content, link)**
+
 - **目的**: 詳細モード用の500文字以内詳細要約生成
 - **戻り値**: Optional[str]
 - **特徴**:
@@ -159,12 +169,12 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 
 #### 3.2.3 API設定
 
-| 設定項目 | 設定値 | 説明 |
-|---------|--------|------|
-| max_tokens | 500/800 | 最大トークン数（要約/詳細要約） |
-| temperature | 0.3 | 生成の確定性制御 |
-| top_p | 0.95 | 語彙選択の多様性制御 |
-| timeout | 30秒 | リクエストタイムアウト |
+| 設定項目    | 設定値  | 説明                            |
+| ----------- | ------- | ------------------------------- |
+| max_tokens  | 500/800 | 最大トークン数（要約/詳細要約） |
+| temperature | 0.3     | 生成の確定性制御                |
+| top_p       | 0.95    | 語彙選択の多様性制御            |
+| timeout     | 30秒    | リクエストタイムアウト          |
 
 ## 4. データフロー設計
 
@@ -220,6 +230,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 5.1 外部API接続
 
 #### 5.1.1 Azure Updates RSS API
+
 - **エンドポイント**: 複数URL（フォールバック対応）
   - `https://www.microsoft.com/releasecommunications/api/v2/azure/rss`
   - `https://azurecomcdn.azureedge.net/en-us/updates/feed/`
@@ -229,6 +240,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 - **認証**: 不要
 
 #### 5.1.2 Azure Updates詳細API
+
 - **エンドポイント**: `https://www.microsoft.com/releasecommunications/api/v2/azure/{id}`
 - **メソッド**: GET
 - **認証**: 不要
@@ -236,6 +248,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 - **レート制限**: 適度な間隔で呼び出し
 
 #### 5.1.3 Azure OpenAI API
+
 - **エンドポイント**: `{AOAI_ENDPOINT}/openai/deployments/{DEPLOYMENT}/chat/completions`
 - **メソッド**: POST
 - **認証**: Azure AD トークン（DefaultAzureCredential）
@@ -245,20 +258,23 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 5.2 内部API設計
 
 #### 5.2.1 設定管理
+
 環境変数による設定管理:
 
-| 環境変数 | 必須 | デフォルト | 説明 |
-|---------|------|-----------|------|
-| AOAI_ENDPOINT | ○ | - | Azure OpenAI エンドポイント |
-| DEPLOYMENT | ○ | - | Azure OpenAI デプロイメント名 |
-| API_VER | - | 2025-01-01-preview | Azure OpenAI API バージョン |
-| CHECK_HOURS | - | 24 | チェック対象時間 |
-| AZURE_TENANT_ID | - | - | Azure AD テナント ID（サービスプリンシパル/マネージド ID 用） |
-| AZURE_CLIENT_ID | - | - | クライアント ID（サービスプリンシパル/マネージド ID 用） |
-| AZURE_CLIENT_SECRET | - | - | クライアントシークレット（サービスプリンシパル認証時のみ） |
+| 環境変数            | 必須 | デフォルト         | 説明                                                          |
+| ------------------- | ---- | ------------------ | ------------------------------------------------------------- |
+| AOAI_ENDPOINT       | ○    | -                  | Azure OpenAI エンドポイント                                   |
+| DEPLOYMENT          | ○    | -                  | Azure OpenAI デプロイメント名                                 |
+| API_VER             | -    | 2025-01-01-preview | Azure OpenAI API バージョン                                   |
+| CHECK_HOURS         | -    | 24                 | チェック対象時間                                              |
+| AZURE_TENANT_ID     | -    | -                  | Azure AD テナント ID（サービスプリンシパル/マネージド ID 用） |
+| AZURE_CLIENT_ID     | -    | -                  | クライアント ID（サービスプリンシパル/マネージド ID 用）      |
+| AZURE_CLIENT_SECRET | -    | -                  | クライアントシークレット（サービスプリンシパル認証時のみ）    |
 
 認証方式:
+
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET`: サービスプリンシパル認証
+- `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + OIDC コンテキスト: OIDC / Workload Identity 認証
 - `AZURE_TENANT_ID` + `AZURE_CLIENT_ID`: マネージド ID 認証
 - ローカル開発: Azure CLI (`az login`) の認証情報を利用
 
@@ -267,6 +283,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 6.1 エラー分類と対応策
 
 #### 6.1.1 ネットワークエラー
+
 - **対象**: RSS取得、API呼び出し失敗
 - **対応**:
   - 自動リトライ（指数バックオフ）
@@ -275,6 +292,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
   - 詳細ログ出力
 
 #### 6.1.2 データ解析エラー
+
 - **対象**: XML解析、JSON解析、日付解析失敗
 - **対応**:
   - 複数形式対応
@@ -283,6 +301,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
   - 部分的な処理継続
 
 #### 6.1.3 APIエラー
+
 - **対象**: Azure OpenAI レート制限、認証エラー
 - **対応**:
   - リトライ戦略
@@ -293,12 +312,14 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 6.2 ログ設計
 
 #### 6.2.1 ログレベル
+
 - **INFO**: 正常処理の進行状況
 - **WARNING**: 復旧可能なエラー
 - **ERROR**: 処理失敗
 - **DEBUG**: 詳細デバッグ情報（--verbose時）
 
 #### 6.2.2 ログ出力先
+
 - **ファイル**: `azure_updates.log` (UTF-8)
 - **コンソール**: 標準出力
 - **フォーマット**: `%(asctime)s - %(levelname)s - %(message)s`
@@ -306,16 +327,19 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 7. セキュリティ設計
 
 ### 7.1 認証情報管理
+
 - **DefaultAzureCredential**: Azure Identity により認証方式を自動選択
 - **GitHub Secrets**: `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` を管理
 - **ログ**: 認証トークン・シークレットのログ出力防止
 
 ### 7.2 通信セキュリティ
+
 - **HTTPS**: 全ての外部通信でHTTPS使用
 - **TLS検証**: 証明書検証有効
 - **User-Agent**: 適切なUser-Agent設定
 
 ### 7.3 入力検証
+
 - **URL検証**: アップデートID抽出時の検証
 - **データサニタイゼーション**: マークダウン出力時のエスケープ
 - **ファイルパス**: 安全なファイルパス生成
@@ -323,12 +347,14 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 8. パフォーマンス設計
 
 ### 8.1 処理効率化
+
 - **HTTPセッション再利用**: requests.Session使用
 - **並行処理制限**: APIレート制限考慮
 - **キャッシュ**: HTTPキャッシュヘッダー尊重
 - **メモリ効率**: 大きなデータの段階的処理
 
 ### 8.2 レート制限対応
+
 - **API間隔制御**: 要約処理間に1秒待機
 - **詳細モード**: 追加待機時間
 - **リトライ戦略**: 指数バックオフ
@@ -338,25 +364,29 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 9.1 テスト種別
 
 #### 9.1.1 ユニットテスト
+
 - **対象**: 各クラスの個別メソッド
 - **ツール**: pytest（想定）
 - **カバレッジ**: 主要メソッドの正常/異常系
 
 #### 9.1.2 統合テスト
+
 - **対象**: RSS取得〜レポート生成の全フロー
 - **実装**: `test_details.py`
 - **バリエーション**: 標準モード/詳細モード
 
 #### 9.1.3 フィードテスト
+
 - **対象**: RSS取得機能
 - **コマンド**: `--test-feed`
-- **検証項目**: 
+- **検証項目**:
   - フィード取得成功
   - エントリ解析成功
   - 日付解析成功
   - アップデートID抽出成功
 
 ### 9.2 テスト環境
+
 - **CI/CD**: GitHub Actions
 - **Python バージョン**: 3.13
 - **依存関係**: requirements.txt
@@ -367,19 +397,23 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ### 10.1 GitHub Actions ワークフロー
 
 #### 10.1.1 トリガー
+
 - **イベント**: repository_dispatch
 - **タイプ**: daily-update
 - **スケジュール**: 外部システムからのトリガー
 
 #### 10.1.2 実行ステップ
+
 1. **環境セットアップ**
    - Python 3.13 インストール
    - 依存関係インストール（pip cache使用）
 
 2. **メイン処理実行**
-   - 日本語版実行（詳細モード）
-   - 英語版実行（詳細モード）
-   - README.md 生成
+
+- 必要に応じて `azure/login@v2` で OIDC フェデレーションログイン
+- 日本語版実行（詳細モード）
+- 英語版実行（詳細モード）
+- README.md 生成
 
 3. **結果コミット**
    - Git 設定
@@ -387,6 +421,7 @@ Azure OpenAI API とのインターフェースを管理するクライアント
    - プル・プッシュ
 
 ### 10.2 環境管理
+
 - **機密情報**: GitHub Secrets
 - **設定**: 環境変数
 - **出力**: Gitリポジトリ
@@ -394,17 +429,20 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 11. 運用設計
 
 ### 11.1 監視項目
+
 - **実行成功率**: GitHub Actions成功率
 - **処理時間**: ワークフロー実行時間
 - **エラー率**: ログファイルのエラー件数
 - **データ品質**: 生成レポートの品質
 
 ### 11.2 アラート条件
+
 - **実行失敗**: GitHub Actions失敗
 - **API エラー**: Azure OpenAI API エラー継続
 - **データ取得失敗**: RSS フィード取得失敗
 
 ### 11.3 バックアップ・復旧
+
 - **コード**: Git リポジトリ
 - **データ**: 生成されたマークダウンファイル
 - **設定**: GitHub Secrets
@@ -413,16 +451,19 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 12. 拡張性設計
 
 ### 12.1 言語対応
+
 - **現状**: 日本語・英語対応
 - **拡張**: 新言語版スクリプト追加
 - **共通化**: 共通ロジックの抽象化可能
 
 ### 12.2 出力形式
+
 - **現状**: Markdown
 - **拡張可能**: HTML、PDF、JSON等
 - **アーキテクチャ**: レポート生成部の抽象化
 
 ### 12.3 データソース
+
 - **現状**: Azure Updates のみ
 - **拡張可能**: 他クラウドサービスの更新情報
 - **設計**: フィード処理の汎用化
@@ -430,12 +471,14 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 13. 品質保証
 
 ### 13.1 コード品質
+
 - **PEP 8**: Pythonコーディング規約準拠
 - **型ヒント**: typing モジュール使用
 - **ドキュメンテーション**: docstring記述
 - **エラーハンドリング**: 包括的例外処理
 
 ### 13.2 データ品質
+
 - **要約品質**: GPT-4による高品質要約
 - **正確性**: 元記事へのリンク提供
 - **完全性**: 全フィールドの適切な処理
@@ -444,12 +487,14 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 14. 制約事項
 
 ### 14.1 技術的制約
+
 - **Azure OpenAI**: レート制限とコスト
 - **RSS フィード**: Microsoft側の仕様変更影響
 - **GitHub Actions**: 実行時間制限（6時間）
 - **Python環境**: 特定バージョンへの依存
 
 ### 14.2 運用制約
+
 - **実行頻度**: 日次実行（リソース効率考慮）
 - **データ保持**: Git履歴による制限
 - **API キー**: 定期的な更新必要
@@ -458,17 +503,19 @@ Azure OpenAI API とのインターフェースを管理するクライアント
 ## 15. バージョン管理
 
 ### 15.1 ソースコード
+
 - **Git**: バージョン管理
 - **ブランチ戦略**: main ブランチ中心
 - **タグ**: 機能追加時のタグ付け
 - **リリース**: GitHub Releases
 
 ### 15.2 依存関係
+
 - **requirements.txt**: 最小バージョン指定
 - **セキュリティ**: 定期的な依存関係更新
 - **互換性**: 下位互換性の維持
 
 ---
 
-*この詳細設計書は Daily Azure Updates Generator の技術仕様を定義します。*
-*最終更新: 2025年07月22日*
+_この詳細設計書は Daily Azure Updates Generator の技術仕様を定義します。_
+_最終更新: 2025年07月22日_
