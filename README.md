@@ -40,6 +40,7 @@ Azure Updates の自動要約が [updates](./updates) ディレクトリに保�
 - `AZURE_TENANT_ID`: Azure AD テナント ID（オプション）
 - `AZURE_CLIENT_ID`: クライアント ID（オプション）
 - `AZURE_CLIENT_SECRET`: クライアントシークレット（サービスプリンシパル認証時に使用）
+- `ENABLE_AZURE_SDK_LOG`: Azure SDK ログを有効化（オプション、`true/1/on/yes` で有効。未設定時は抑制）
 
 認証方式は `DefaultAzureCredential` で自動判定されます。
 

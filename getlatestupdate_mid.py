@@ -28,6 +28,7 @@ from typing import List, Dict, Optional
 import json
 import time
 import re
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse, parse_qs
 
 # サードパーティライブラリ
@@ -54,6 +55,18 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+
+def is_truthy_env(var_name: str) -> bool:
+    return os.getenv(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+if not is_truthy_env("ENABLE_AZURE_SDK_LOG"):
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("azure.identity").setLevel(logging.WARNING)
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+        logging.WARNING
+    )
 
 
 class AzureOpenAIClient:
@@ -182,13 +195,13 @@ class AzureOpenAIClient:
 
 リンク: {link}
 
-要約は以下の形式で作成してください：
+要約は以下の要素ごとにまとめて作成してください：
 - 何が更新されたか
 - 主な変更点や新機能
 - 影響を受ける対象
 - 注意点があれば記載
 
-1000文字程度で簡潔にまとめてください。
+500文字程度で簡潔にまとめてください。
 言葉遣いは「ですます調」に統一してください。
 技術者が理解しやすいように、専門用語を適切に使用してください。
 与えられた情報から要約を生成し、内容を補完するためのアップデート内容についての推測は行わないでください。
@@ -204,7 +217,7 @@ class AzureOpenAIClient:
                     },
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": 500,
+                "max_tokens": 2000,
                 "temperature": 0.3,
                 "top_p": 0.95,
             }
@@ -259,7 +272,7 @@ class AzureOpenAIClient:
 
 リンク: {link}
 
-以下の観点から詳細に説明してください：
+以下の観点を含む文章として、詳細に説明してください：
 - アップデートの背景と目的
 - 具体的な機能や変更内容の詳細
 - 技術的な仕組みや実装方法
@@ -267,7 +280,13 @@ class AzureOpenAIClient:
 - 注意点や制限事項
 - 関連するAzureサービスとの連携
 
-500文字以内で、技術者が実際に活用する際に役立つ詳細情報を提供してください。
+1000文字程度で技術者が実際に活用する際に役立つ詳細情報を提供してください。
+言葉遣いは「ですます調」に統一してください。
+箇条書きではなく、構造化された文章で論理立てて説明してください。
+技術者が理解しやすいように、専門用語を適切に使用してください。
+与えられた情報から要約を生成し、内容を補完するためのアップデート内容についての推測は絶対に行わないでください。
+文字数が足りなくてもかまいません。正確な情報が要約されることが最大のフォーカスポイントです。
+与えられた情報が不十分で正確な情報が書けないなら、わかっている情報のみを使って短くてもいいのでまとめてください。
 """
 
             payload = {
@@ -278,7 +297,7 @@ class AzureOpenAIClient:
                     },
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": 800,
+                "max_tokens": 4000,
                 "temperature": 0.3,
                 "top_p": 0.95,
             }
@@ -778,12 +797,24 @@ class AzureUpdatesProcessor:
             return None
 
         try:
-            # まず feedparser の標準パーサーを試行
-            time_struct = feedparser._parse_date(date_str)
-            if time_struct:
-                return datetime(*time_struct[:6], tzinfo=timezone.utc)
+            iso_date_str = date_str.strip()
+            if iso_date_str.endswith("Z"):
+                iso_date_str = iso_date_str[:-1] + "+00:00"
+
+            parsed_dt = datetime.fromisoformat(iso_date_str)
+            if parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
         except Exception as e:
-            logger.debug(f"feedparser による日付パースエラー: {date_str} - {e}")
+            logger.debug(f"ISO8601 日付パースエラー: {date_str} - {e}")
+
+        try:
+            parsed_dt = parsedate_to_datetime(date_str)
+            if parsed_dt and parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
+        except Exception as e:
+            logger.debug(f"RFC2822 日付パースエラー: {date_str} - {e}")
 
         # フォールバック: 一般的な日付フォーマットを試行
         date_formats = [
@@ -1400,7 +1431,7 @@ def main():
 
     # ログレベル設定
     if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
     try:
         # テストモードの場合

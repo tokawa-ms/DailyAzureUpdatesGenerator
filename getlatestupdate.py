@@ -19,6 +19,7 @@ from typing import List, Dict, Optional
 import json
 import time
 import re
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse, parse_qs
 
 # サードパーティライブラリ
@@ -715,12 +716,24 @@ class AzureUpdatesProcessor:
             return None
 
         try:
-            # まず feedparser の標準パーサーを試行
-            time_struct = feedparser._parse_date(date_str)
-            if time_struct:
-                return datetime(*time_struct[:6], tzinfo=timezone.utc)
+            iso_date_str = date_str.strip()
+            if iso_date_str.endswith("Z"):
+                iso_date_str = iso_date_str[:-1] + "+00:00"
+
+            parsed_dt = datetime.fromisoformat(iso_date_str)
+            if parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
         except Exception as e:
-            logger.debug(f"feedparser による日付パースエラー: {date_str} - {e}")
+            logger.debug(f"ISO8601 日付パースエラー: {date_str} - {e}")
+
+        try:
+            parsed_dt = parsedate_to_datetime(date_str)
+            if parsed_dt and parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
+        except Exception as e:
+            logger.debug(f"RFC2822 日付パースエラー: {date_str} - {e}")
 
         # フォールバック: 一般的な日付フォーマットを試行
         date_formats = [

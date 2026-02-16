@@ -40,6 +40,7 @@ Before running the application, set the following environment variables:
 - `AZURE_TENANT_ID`: Azure AD tenant ID (optional)
 - `AZURE_CLIENT_ID`: Client ID (optional)
 - `AZURE_CLIENT_SECRET`: Client secret (used for service principal authentication)
+- `ENABLE_AZURE_SDK_LOG`: Enable Azure SDK logs (optional, enable with `true/1/on/yes`; suppressed by default)
 
 Authentication is auto-detected by `DefaultAzureCredential`.
 

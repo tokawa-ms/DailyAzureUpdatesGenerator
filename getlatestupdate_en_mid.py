@@ -28,6 +28,7 @@ from typing import List, Dict, Optional
 import json
 import time
 import re
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse, parse_qs
 
 # Third-party libraries
@@ -54,6 +55,18 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+
+def is_truthy_env(var_name: str) -> bool:
+    return os.getenv(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+if not is_truthy_env("ENABLE_AZURE_SDK_LOG"):
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("azure.identity").setLevel(logging.WARNING)
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+        logging.WARNING
+    )
 
 
 class AzureOpenAIClient:
@@ -796,12 +809,24 @@ class AzureUpdatesProcessor:
             return None
 
         try:
-            # First try feedparser's standard parser
-            time_struct = feedparser._parse_date(date_str)
-            if time_struct:
-                return datetime(*time_struct[:6], tzinfo=timezone.utc)
+            iso_date_str = date_str.strip()
+            if iso_date_str.endswith("Z"):
+                iso_date_str = iso_date_str[:-1] + "+00:00"
+
+            parsed_dt = datetime.fromisoformat(iso_date_str)
+            if parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
         except Exception as e:
-            logger.debug(f"Date parsing error with feedparser: {date_str} - {e}")
+            logger.debug(f"ISO8601 date parsing error: {date_str} - {e}")
+
+        try:
+            parsed_dt = parsedate_to_datetime(date_str)
+            if parsed_dt and parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            return parsed_dt
+        except Exception as e:
+            logger.debug(f"RFC2822 date parsing error: {date_str} - {e}")
 
         # Fallback: try common date formats
         date_formats = [
@@ -1434,7 +1459,7 @@ def main():
 
     # Set log level
     if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
     try:
         # Test mode
